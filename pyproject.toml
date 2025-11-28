@@ -1,0 +1,134 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "pyruvector"
+version = "0.1.0"
+description = "High-performance Python bindings for rUvector - HNSW-powered vector database with advanced quantization and multi-tenancy"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "rUv", email = "ruv@ruv.io" }
+]
+maintainers = [
+    { name = "rUv", email = "ruv@ruv.io" }
+]
+keywords = [
+    "vector-database",
+    "embeddings",
+    "similarity-search",
+    "machine-learning",
+    "rust",
+    "hnsw",
+    "quantization",
+    "semantic-search",
+    "vector-search",
+    "ai",
+    "ml"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Rust",
+    "Topic :: Database",
+    "Topic :: Database :: Database Engines/Servers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+numpy = ["numpy>=1.20.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+    "maturin>=1.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ruvnet/ruvector"
+Documentation = "https://github.com/ruvnet/ruvector#readme"
+Repository = "https://github.com/ruvnet/ruvector"
+Issues = "https://github.com/ruvnet/ruvector/issues"
+Changelog = "https://github.com/ruvnet/ruvector/releases"
+Source = "https://github.com/ruvnet/ruvector"
+
+[tool.maturin]
+bindings = "pyo3"
+python-source = "python"
+module-name = "pyruvector._pyruvector"
+features = ["pyo3/extension-module"]
+strip = true
+include = [
+    "python/pyruvector/*.py",
+    "python/pyruvector/*.pyi",
+    "python/pyruvector/py.typed",
+    "README.md",
+    "LICENSE",
+    "Cargo.toml",
+    "Cargo.lock",
+]
+exclude = [
+    "*.pyc",
+    "__pycache__",
+    ".git",
+    ".github",
+    "target",
+    "tests",
+    "examples",
+    "docs",
+    ".claude-flow",
+    "*.md",
+    "!README.md",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

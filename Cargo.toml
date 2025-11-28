@@ -1,0 +1,86 @@
+[package]
+name = "pyruvector"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70.0"
+authors = ["rUv <ruv@ruv.io>"]
+description = "Python bindings for rUvector - High-performance vector database with HNSW indexing, quantization, and distributed capabilities"
+license = "MIT"
+repository = "https://github.com/ruvnet/ruvector"
+homepage = "https://github.com/ruvnet/ruvector"
+documentation = "https://github.com/ruvnet/ruvector#readme"
+readme = "README.md"
+keywords = ["vector", "database", "machine-learning", "python", "pyo3"]
+categories = ["database", "science", "api-bindings"]
+publish = true
+
+[lib]
+name = "pyruvector"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module", "abi3-py39"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+uuid = { version = "1.0", features = ["v4"] }
+parking_lot = "0.12"
+
+# ============================================
+# ruvector crates from crates.io
+# ============================================
+
+# Core vector database
+ruvector-core = "0.1.2"
+ruvector-collections = "0.1.2"
+ruvector-filter = "0.1.2"
+ruvector-metrics = "0.1.2"
+ruvector-snapshot = "0.1.2"
+
+# Graph database
+ruvector-graph = "0.1.2"
+ruvector-gnn = "0.1.15"
+
+# Distributed/cluster
+ruvector-cluster = "0.1.2"
+ruvector-raft = "0.1.2"
+ruvector-replication = "0.1.2"
+
+# Router/AI routing (Tiny Dancer)
+ruvector-router-core = "0.1.2"
+ruvector-tiny-dancer-core = "0.1.2"
+
+# Server (optional - for embedding REST API)
+ruvector-server = { version = "0.1.2", optional = true }
+
+# ============================================
+# Additional dependencies
+# ============================================
+prometheus = "0.13"
+lazy_static = "1.5"
+tokio = { version = "1.0", features = ["rt-multi-thread", "sync", "fs"] }
+async-trait = "0.1"
+chrono = "0.4"
+sha2 = "0.10"
+flate2 = "1.0"
+lz4 = "1.24"
+bincode = { version = "2.0.0-rc.3", features = ["serde"] }
+rand = "0.8"
+ndarray = { version = "0.16", features = ["serde"] }
+
+[features]
+default = ["metrics", "snapshot", "graph", "cluster", "router"]
+metrics = []
+snapshot = []
+graph = []
+gnn = []
+cluster = []
+router = []
+server = ["dep:ruvector-server"]
+full = ["metrics", "snapshot", "graph", "gnn", "cluster", "router", "server"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

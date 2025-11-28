@@ -1,0 +1,28 @@
+# Include package metadata
+include README.md
+include LICENSE
+include Cargo.toml
+include Cargo.lock
+include pyproject.toml
+
+# Include Python package
+recursive-include python/pyruvector *.py *.pyi
+include python/pyruvector/py.typed
+
+# Include Rust source
+recursive-include src *.rs
+
+# Exclude development and build artifacts
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+exclude .gitignore
+prune .git
+prune .github
+prune .claude-flow
+prune target
+prune tests
+prune examples
+prune docs
+exclude *.md
+include README.md
