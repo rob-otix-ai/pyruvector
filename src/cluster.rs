@@ -170,7 +170,7 @@ impl ReplicaStatus {
 
 /// Cluster configuration (wraps ruvector_cluster::ClusterConfig)
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ClusterConfig {
     inner: RuvectorClusterConfig,
 }
@@ -291,14 +291,6 @@ impl ClusterConfig {
         dict.set_item("enable_consensus", self.inner.enable_consensus)?;
         dict.set_item("min_quorum", self.inner.min_quorum_size)?;
         Ok(dict.into())
-    }
-}
-
-impl Default for ClusterConfig {
-    fn default() -> Self {
-        Self {
-            inner: RuvectorClusterConfig::default(),
-        }
     }
 }
 
@@ -676,6 +668,7 @@ impl ClusterManager {
     }
 
     /// Add a node to the cluster
+    #[allow(clippy::await_holding_lock)]
     fn add_node(&mut self, node_id: String, address: String) -> PyResult<bool> {
         let node = ClusterNode::new(node_id.clone(), address, 1.0)?;
         let ruvector_node = node.to_ruvector_node();
@@ -695,6 +688,7 @@ impl ClusterManager {
     }
 
     /// Remove a node from the cluster
+    #[allow(clippy::await_holding_lock)]
     fn remove_node(&mut self, node_id: String) -> PyResult<bool> {
         let manager = Arc::clone(&self.inner);
         let rt = Arc::clone(&self.runtime);
@@ -775,6 +769,7 @@ impl ClusterManager {
     }
 
     /// Start the cluster
+    #[allow(clippy::await_holding_lock)]
     fn start(&mut self) -> PyResult<()> {
         let manager = Arc::clone(&self.inner);
         let rt = Arc::clone(&self.runtime);

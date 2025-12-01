@@ -84,14 +84,14 @@ use ruvector_gnn::{
 ///
 /// # Variants
 ///
-/// * `SGD` - Stochastic Gradient Descent
+/// * `Sgd` - Stochastic Gradient Descent
 /// * `Adam` - Adaptive Moment Estimation
 /// * `AdamW` - Adam with Weight Decay (Note: ruvector-gnn doesn't have AdamW, maps to Adam)
 #[pyclass]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum OptimizerType {
     /// Stochastic Gradient Descent
-    SGD,
+    Sgd,
     /// Adaptive Moment Estimation
     Adam,
     /// Adam with Weight Decay (maps to Adam in ruvector-gnn)
@@ -106,7 +106,7 @@ impl OptimizerType {
 
     fn __str__(&self) -> String {
         match self {
-            OptimizerType::SGD => "SGD".to_string(),
+            OptimizerType::Sgd => "SGD".to_string(),
             OptimizerType::Adam => "Adam".to_string(),
             OptimizerType::AdamW => "AdamW".to_string(),
         }
@@ -117,7 +117,7 @@ impl OptimizerType {
     /// Convert Python OptimizerType to ruvector-gnn OptimizerType
     fn to_ruvector(&self, learning_rate: f32) -> RuvectorOptimizerType {
         match self {
-            OptimizerType::SGD => RuvectorOptimizerType::Sgd {
+            OptimizerType::Sgd => RuvectorOptimizerType::Sgd {
                 learning_rate,
                 momentum: 0.9,
             },
@@ -255,7 +255,7 @@ impl GNNConfig {
         dropout: f32,
         activation: String,
     ) -> PyResult<Self> {
-        if dropout < 0.0 || dropout > 1.0 {
+        if !(0.0..=1.0).contains(&dropout) {
             return Err(PyValueError::new_err("Dropout must be between 0.0 and 1.0"));
         }
 
@@ -763,8 +763,8 @@ impl BasicGNNLayer {
         self.weight_gradients = vec![vec![0.0; self.input_dim]; self.output_dim];
         self.bias_gradients = vec![0.0; self.output_dim];
 
-        for i in 0..num_nodes {
-            for out_idx in 0..self.output_dim {
+        for (i, output_grad) in output_gradients.iter().enumerate() {
+            for (out_idx, &grad_val) in output_grad.iter().enumerate() {
                 // Gradient through activation
                 let pre_activation = {
                     let mut sum = self.bias[out_idx];
@@ -775,16 +775,16 @@ impl BasicGNNLayer {
                 };
 
                 let activation_grad = self.activation_derivative(pre_activation);
-                let grad = output_gradients[i][out_idx] * activation_grad;
+                let grad = grad_val * activation_grad;
 
                 // Accumulate bias gradient
                 self.bias_gradients[out_idx] += grad;
 
                 // Accumulate weight gradients and compute input gradients
-                for in_idx in 0..self.input_dim {
+                for (in_idx, input_grad) in input_gradients[i].iter_mut().enumerate() {
                     self.weight_gradients[out_idx][in_idx] +=
                         grad * self.last_aggregated[i][in_idx];
-                    input_gradients[i][in_idx] += grad * self.weights[out_idx][in_idx];
+                    *input_grad += grad * self.weights[out_idx][in_idx];
                 }
             }
         }
@@ -867,7 +867,7 @@ impl RuvectorLayerWrapper {
     /// ```
     #[new]
     fn new(input_dim: usize, hidden_dim: usize, heads: usize, dropout: f32) -> PyResult<Self> {
-        if dropout < 0.0 || dropout > 1.0 {
+        if !(0.0..=1.0).contains(&dropout) {
             return Err(PyValueError::new_err("Dropout must be between 0.0 and 1.0"));
         }
 
@@ -986,6 +986,9 @@ impl RuvectorLayerWrapper {
     }
 }
 
+/// Type alias for training data tuples
+type TrainDataTuple = (Vec<Vec<f32>>, Vec<Vec<usize>>, Vec<f32>);
+
 /// Graph Neural Network Model
 ///
 /// Complete GNN model with multiple layers, training, and inference capabilities.
@@ -1069,7 +1072,7 @@ impl GNNModel {
     /// Training metrics
     fn train(
         &mut self,
-        train_data: Vec<(Vec<Vec<f32>>, Vec<Vec<usize>>, Vec<f32>)>,
+        train_data: Vec<TrainDataTuple>,
         config: PyTrainConfig,
     ) -> PyResult<TrainingMetrics> {
         let mut loss_history = Vec::new();
@@ -1108,15 +1111,19 @@ impl GNNModel {
                 let mut output_gradients = vec![vec![0.0; output_dim]; num_nodes];
 
                 // Compute MSE loss and gradients
-                for i in 0..num_nodes.min(labels.len()) {
-                    for j in 0..output_dim {
+                for (i, grad_row) in output_gradients
+                    .iter_mut()
+                    .enumerate()
+                    .take(num_nodes.min(labels.len()))
+                {
+                    for (j, grad_cell) in grad_row.iter_mut().enumerate() {
                         let idx = i * output_dim + j;
                         if idx < predictions.len() && idx < labels.len() {
                             let pred = predictions[idx];
                             let label = labels[idx];
                             sample_loss += (pred - label).powi(2);
                             // Gradient of MSE: 2 * (pred - label)
-                            output_gradients[i][j] = 2.0 * (pred - label) / labels.len() as f32;
+                            *grad_cell = 2.0 * (pred - label) / labels.len() as f32;
                         }
                     }
                 }

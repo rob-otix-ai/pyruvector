@@ -14,6 +14,13 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 // ============================================================================
+// Type Aliases
+// ============================================================================
+
+/// Type alias for the inverted index structure
+type InvertedIndex = Arc<RwLock<HashMap<String, HashMap<String, Vec<String>>>>>;
+
+// ============================================================================
 // Index Types
 // ============================================================================
 
@@ -89,7 +96,7 @@ pub struct PayloadIndexManager {
     /// Map of vector_id -> payload data
     payloads: Arc<RwLock<HashMap<String, Value>>>,
     /// Inverted index: field -> value -> [vector_ids]
-    inverted_index: Arc<RwLock<HashMap<String, HashMap<String, Vec<String>>>>>,
+    inverted_index: InvertedIndex,
 }
 
 #[pymethods]
@@ -100,11 +107,7 @@ impl PayloadIndexManager {
     /// A new PayloadIndexManager instance
     #[new]
     pub fn new() -> Self {
-        Self {
-            indices: Arc::new(RwLock::new(HashMap::new())),
-            payloads: Arc::new(RwLock::new(HashMap::new())),
-            inverted_index: Arc::new(RwLock::new(HashMap::new())),
-        }
+        Self::default()
     }
 
     /// Create an index on a payload field
@@ -210,7 +213,7 @@ impl PayloadIndexManager {
             for (field, value) in obj {
                 if indices.contains_key(field) {
                     // Get or create field index
-                    let field_index = inv_index.entry(field.clone()).or_insert_with(HashMap::new);
+                    let field_index = inv_index.entry(field.clone()).or_default();
 
                     // Convert value to index key
                     let index_key = value_to_index_key(value);
@@ -218,7 +221,7 @@ impl PayloadIndexManager {
                     // Add vector_id to this value's list
                     field_index
                         .entry(index_key)
-                        .or_insert_with(Vec::new)
+                        .or_default()
                         .push(vector_id.clone());
                 }
             }
@@ -351,7 +354,7 @@ enum FilterCondition {
 /// filter = FilterBuilder().text_match("description", "machine learning").build()
 /// ```
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct FilterBuilder {
     conditions: Vec<FilterCondition>,
 }
@@ -361,9 +364,7 @@ impl FilterBuilder {
     /// Create a new FilterBuilder
     #[new]
     pub fn new() -> Self {
-        Self {
-            conditions: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Add equality condition
@@ -440,8 +441,7 @@ impl FilterBuilder {
     /// * `values` - List of acceptable values
     pub fn in_values(&self, field: String, values: &PyList) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
-        let json_values: PyResult<Vec<Value>> =
-            values.iter().map(|item| pyany_to_value(item)).collect();
+        let json_values: PyResult<Vec<Value>> = values.iter().map(pyany_to_value).collect();
         builder
             .conditions
             .push(FilterCondition::In(field, json_values?));
@@ -798,6 +798,16 @@ impl Clone for PayloadIndexManager {
     }
 }
 
+impl Default for PayloadIndexManager {
+    fn default() -> Self {
+        Self {
+            indices: Arc::new(RwLock::new(HashMap::new())),
+            payloads: Arc::new(RwLock::new(HashMap::new())),
+            inverted_index: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -826,7 +836,7 @@ fn pyany_to_value(obj: &PyAny) -> PyResult<Value> {
     } else if let Ok(b) = obj.extract::<bool>() {
         Ok(json!(b))
     } else if let Ok(list) = obj.downcast::<PyList>() {
-        let items: PyResult<Vec<Value>> = list.iter().map(|item| pyany_to_value(item)).collect();
+        let items: PyResult<Vec<Value>> = list.iter().map(pyany_to_value).collect();
         Ok(Value::Array(items?))
     } else if let Ok(dict) = obj.downcast::<PyDict>() {
         pydict_to_value(dict)

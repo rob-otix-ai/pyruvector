@@ -89,6 +89,12 @@ lazy_static! {
 #[derive(Clone)]
 pub struct MetricsRecorder;
 
+impl Default for MetricsRecorder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl MetricsRecorder {
     /// Create a new MetricsRecorder instance

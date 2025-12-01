@@ -106,8 +106,9 @@ impl DBStats {
 
 /// Distance metric for vector similarity computation
 #[pyclass]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub enum DistanceMetric {
+    #[default]
     Cosine,
     Euclidean,
     DotProduct,
@@ -155,16 +156,11 @@ impl DistanceMetric {
     }
 }
 
-impl Default for DistanceMetric {
-    fn default() -> Self {
-        DistanceMetric::Cosine
-    }
-}
-
 /// Quantization type for memory optimization
 #[pyclass]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub enum QuantizationType {
+    #[default]
     None,
     Scalar,
     Product,
@@ -209,12 +205,6 @@ impl QuantizationType {
             QuantizationType::Product => "Product".to_string(),
             QuantizationType::Binary => "Binary".to_string(),
         }
-    }
-}
-
-impl Default for QuantizationType {
-    fn default() -> Self {
-        QuantizationType::None
     }
 }
 

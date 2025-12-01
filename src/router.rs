@@ -10,6 +10,9 @@ use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+// Type alias for search results to avoid complex return types
+type SearchResult = Vec<(String, f32, HashMap<String, String>)>;
+
 // Import from ruvector-tiny-dancer-core
 use ruvector_tiny_dancer_core::{
     types::RouterConfig as TDRouterConfig, Candidate as TDCandidate, Router as TinyDancerRouter,
@@ -663,12 +666,7 @@ impl VectorDatabase {
     ///
     /// # Returns
     /// List of (id, score, metadata) tuples sorted by similarity
-    fn search(
-        &self,
-        query: Vec<f32>,
-        k: usize,
-        threshold: Option<f32>,
-    ) -> PyResult<Vec<(String, f32, HashMap<String, String>)>> {
+    fn search(&self, query: Vec<f32>, k: usize, threshold: Option<f32>) -> PyResult<SearchResult> {
         let search_query = SearchQuery {
             vector: query,
             k,

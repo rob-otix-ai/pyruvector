@@ -75,21 +75,20 @@ impl FilterCondition {
                 let expected = self.value.as_bool().unwrap_or(true);
                 field_value.is_some() == expected
             }
-            FilterOperator::Eq => field_value.map_or(false, |v| v == &self.value),
-            FilterOperator::Ne => field_value.map_or(true, |v| v != &self.value),
-            FilterOperator::Gt => field_value.map_or(false, |v| {
+            FilterOperator::Eq => field_value == Some(&self.value),
+            FilterOperator::Ne => field_value != Some(&self.value),
+            FilterOperator::Gt => field_value.is_some_and(|v| {
                 compare_values(v, &self.value) == Some(std::cmp::Ordering::Greater)
             }),
-            FilterOperator::Gte => field_value.map_or(false, |v| {
+            FilterOperator::Gte => field_value.is_some_and(|v| {
                 matches!(
                     compare_values(v, &self.value),
                     Some(std::cmp::Ordering::Greater | std::cmp::Ordering::Equal)
                 )
             }),
-            FilterOperator::Lt => field_value.map_or(false, |v| {
-                compare_values(v, &self.value) == Some(std::cmp::Ordering::Less)
-            }),
-            FilterOperator::Lte => field_value.map_or(false, |v| {
+            FilterOperator::Lt => field_value
+                .is_some_and(|v| compare_values(v, &self.value) == Some(std::cmp::Ordering::Less)),
+            FilterOperator::Lte => field_value.is_some_and(|v| {
                 matches!(
                     compare_values(v, &self.value),
                     Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal)
@@ -97,7 +96,7 @@ impl FilterCondition {
             }),
             FilterOperator::In => {
                 if let Some(arr) = self.value.as_array() {
-                    field_value.map_or(false, |v| arr.contains(v))
+                    field_value.is_some_and(|v| arr.contains(v))
                 } else {
                     false
                 }

@@ -13,6 +13,9 @@ use crate::types::{
     QuantizationType, SearchResult,
 };
 
+/// Type alias for vector snapshot data: (id, vector, metadata)
+pub type VectorSnapshot = Vec<(String, Vec<f32>, HashMap<String, serde_json::Value>)>;
+
 /// Main VectorDB class for storing and searching vectors
 ///
 /// This wraps ruvector-core's high-performance HNSW-indexed vector database
@@ -432,7 +435,7 @@ impl VectorDB {
 
         // Convert results to Python-friendly format
         // Apply additional client-side filtering if ruvector-core doesn't support all operators
-        let filter_conditions = filter_map.map(|fm| parse_filter(fm));
+        let filter_conditions = filter_map.map(parse_filter);
 
         let py_results: Vec<SearchResult> = results
             .into_iter()
@@ -590,7 +593,7 @@ impl VectorDB {
     /// Get the distance metric used by this database
     #[getter]
     fn distance_metric(&self) -> DistanceMetric {
-        self.distance_metric.clone()
+        self.distance_metric
     }
 
     /// Get the HNSW configuration
@@ -818,10 +821,7 @@ impl VectorDB {
 
     /// Get all vectors by IDs (public API for snapshot support)
     /// Users must provide the list of IDs they've inserted
-    pub fn get_vectors_by_ids(
-        &self,
-        ids: Vec<String>,
-    ) -> PyResult<Vec<(String, Vec<f32>, HashMap<String, serde_json::Value>)>> {
+    pub fn get_vectors_by_ids(&self, ids: Vec<String>) -> PyResult<VectorSnapshot> {
         let mut results = Vec::with_capacity(ids.len());
 
         for id in ids {
@@ -842,7 +842,7 @@ fn python_dict_to_json(py: Python, dict: &PyDict) -> PyResult<HashMap<String, se
 
     for (key, value) in dict.iter() {
         let key_str: String = key.extract()?;
-        let json_value = pyobject_to_json(py, &value)?;
+        let json_value = pyobject_to_json(py, value)?;
         map.insert(key_str, json_value);
     }
 
@@ -864,7 +864,7 @@ fn pyobject_to_json(py: Python, obj: &PyAny) -> PyResult<serde_json::Value> {
     } else if let Ok(list) = obj.downcast::<pyo3::types::PyList>() {
         let mut vec = Vec::new();
         for item in list.iter() {
-            vec.push(pyobject_to_json(py, &item)?);
+            vec.push(pyobject_to_json(py, item)?);
         }
         Ok(serde_json::Value::Array(vec))
     } else if let Ok(dict) = obj.downcast::<PyDict>() {
@@ -882,6 +882,5 @@ mod tests {
     #[test]
     fn test_module_compiles() {
         // Basic compilation test
-        assert!(true);
     }
 }
