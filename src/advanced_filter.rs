@@ -721,7 +721,41 @@ impl FilterEvaluator {
                             return Ok(false);
                         }
                     }
-                    _ => {}
+                    "$nin" => {
+                        // Not in - opposite of $in
+                        if self.evaluate_in(field_value, val)? {
+                            return Ok(false);
+                        }
+                    }
+                    "$contains" => {
+                        // Check if array field contains value, or string contains substring
+                        if !self.evaluate_contains(field_value, val)? {
+                            return Ok(false);
+                        }
+                    }
+                    "$exists" => {
+                        // Check if field exists (or doesn't exist if false)
+                        let should_exist = val.extract::<bool>().unwrap_or(true);
+                        let exists = field_value.is_some();
+                        if exists != should_exist {
+                            return Ok(false);
+                        }
+                    }
+                    "$text_match" | "$text" | "$match" => {
+                        // Text/keyword search - case-insensitive substring match
+                        if !self.evaluate_text_match(field_value, val)? {
+                            return Ok(false);
+                        }
+                    }
+                    "$regex" => {
+                        // Regex pattern matching
+                        if !self.evaluate_regex(field_value, val)? {
+                            return Ok(false);
+                        }
+                    }
+                    _ => {
+                        // Unknown operator - skip silently for forward compatibility
+                    }
                 }
             }
         } else {
@@ -785,6 +819,91 @@ impl FilterEvaluator {
         }
 
         Ok(false)
+    }
+
+    /// Evaluate $contains operator - checks if array contains value or string contains substring
+    fn evaluate_contains(&self, field_value: Option<&Value>, expected: &PyAny) -> PyResult<bool> {
+        let field_value = match field_value {
+            Some(v) => v,
+            None => return Ok(false),
+        };
+
+        let expected_val = pyany_to_value(expected)?;
+
+        match field_value {
+            // Array contains value
+            Value::Array(arr) => Ok(arr.contains(&expected_val)),
+            // String contains substring
+            Value::String(s) => {
+                if let Value::String(substr) = &expected_val {
+                    Ok(s.to_lowercase().contains(&substr.to_lowercase()))
+                } else {
+                    Ok(false)
+                }
+            }
+            _ => Ok(false),
+        }
+    }
+
+    /// Evaluate $text_match operator - case-insensitive text search
+    fn evaluate_text_match(&self, field_value: Option<&Value>, query: &PyAny) -> PyResult<bool> {
+        let field_value = match field_value {
+            Some(v) => v,
+            None => return Ok(false),
+        };
+
+        let query_str = query.extract::<String>().unwrap_or_default().to_lowercase();
+        if query_str.is_empty() {
+            return Ok(true); // Empty query matches everything
+        }
+
+        // Split query into terms for multi-word matching
+        let query_terms: Vec<&str> = query_str.split_whitespace().collect();
+
+        match field_value {
+            Value::String(s) => {
+                let field_lower = s.to_lowercase();
+                // All query terms must be present (AND semantics)
+                Ok(query_terms.iter().all(|term| field_lower.contains(term)))
+            }
+            Value::Array(arr) => {
+                // Search across all string elements in array
+                for item in arr {
+                    if let Value::String(s) = item {
+                        let field_lower = s.to_lowercase();
+                        if query_terms.iter().all(|term| field_lower.contains(term)) {
+                            return Ok(true);
+                        }
+                    }
+                }
+                Ok(false)
+            }
+            _ => Ok(false),
+        }
+    }
+
+    /// Evaluate $regex operator - regex pattern matching
+    fn evaluate_regex(&self, field_value: Option<&Value>, pattern: &PyAny) -> PyResult<bool> {
+        let field_value = match field_value {
+            Some(v) => v,
+            None => return Ok(false),
+        };
+
+        let pattern_str = pattern.extract::<String>().unwrap_or_default();
+        if pattern_str.is_empty() {
+            return Ok(true);
+        }
+
+        // Compile regex (with case-insensitive flag if pattern starts with (?i))
+        let regex = match regex::Regex::new(&pattern_str) {
+            Ok(r) => r,
+            Err(_) => return Ok(false), // Invalid regex pattern
+        };
+
+        match field_value {
+            Value::String(s) => Ok(regex.is_match(s)),
+            _ => Ok(false),
+        }
     }
 }
 
