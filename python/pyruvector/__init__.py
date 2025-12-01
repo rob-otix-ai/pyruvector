@@ -1,26 +1,50 @@
 """
-pyruvector - High-performance Python bindings for ruvector vector database.
+pyruvector - A distributed vector database that learns.
 
-Features:
-- HNSW indexing with O(log n) search and 95%+ recall
-- Multiple distance metrics: Cosine, Euclidean, DotProduct, Manhattan
-- Quantization for 4-32x memory compression
-- Multi-tenancy with CollectionManager
-- Rich metadata filtering
+Store embeddings, query with Cypher, scale horizontally with Raft consensus,
+and let the index improve itself through Graph Neural Networks.
+
+Python bindings for rUvector - the Rust vector database ecosystem.
+Developed by Rob-otix Ai Ltd.
+
+Core Features:
+    - Vector Search: HNSW index, <1ms latency, SIMD acceleration
+    - Cypher Queries: Neo4j-style graph queries (MATCH, WHERE, CREATE, RETURN)
+    - GNN Layers: Neural network on index topology - search improves with usage
+    - Hyperedges: Connect 3+ nodes for complex relationships
+    - Metadata Filtering: Combine semantic + structured search
+    - Collections: Namespace isolation for multi-tenancy
+
+Distributed Systems:
+    - Raft Consensus: Leader election, log replication, strong consistency
+    - Auto-Sharding: Consistent hashing, shard migration
+    - Multi-Master Replication: Write to any node, conflict resolution
+    - Snapshots: Point-in-time backups with incremental support
+
+AI & ML:
+    - Tensor Compression: 2-32x memory reduction (Scalar/Product/Binary)
+    - Semantic Router: Route queries to optimal endpoints (Tiny Dancer)
+    - Adaptive Routing: Learn optimal strategies, minimize latency
+
+Think of it as: Pinecone + Neo4j + PyTorch + etcd in one Python package.
 
 Example:
-    from pyruvector import VectorDB, DistanceMetric
+    >>> from pyruvector import VectorDB, DistanceMetric
+    >>> db = VectorDB(dimensions=384, distance_metric=DistanceMetric.cosine())
+    >>> db.insert("doc1", [0.1] * 384, {"title": "Example"})
+    >>> results = db.search([0.1] * 384, k=5)
 
-    db = VectorDB(dimensions=384, distance_metric=DistanceMetric.cosine())
-    db.insert("doc1", [0.1] * 384, {"title": "Example"})
-    results = db.search([0.1] * 384, k=5)
+    # Multi-tenancy with CollectionManager
+    >>> from pyruvector import CollectionManager
+    >>> manager = CollectionManager()
+    >>> manager.create_collection("docs", dimensions=384)
 
-    # Or use CollectionManager for multi-tenancy
-    from pyruvector import CollectionManager
+    # Graph database with Cypher-style operations
+    >>> from pyruvector import GraphDB
+    >>> graph = GraphDB()
+    >>> node_id = graph.create_node("Person", {"name": "Alice"})
 
-    manager = CollectionManager()
-    manager.create_collection("docs", dimensions=384)
-    docs = manager.get_collection("docs")
+Requires Python 3.9 or higher.
 """
 
 from ._pyruvector import (

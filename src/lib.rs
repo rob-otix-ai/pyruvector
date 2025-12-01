@@ -2,6 +2,8 @@
 
 //! pyruvector - High-performance vector database with SIMD acceleration
 //!
+//! Rob-otix Ai Ltd Edition
+//!
 //! A Python binding for ruvector, providing efficient vector similarity search
 //! with HNSW indexing and quantization support.
 
@@ -56,24 +58,32 @@ fn version() -> &'static str {
 #[pyfunction]
 fn info() -> String {
     format!(
-        "pyruvector v{} - Python bindings for ruvector\n\
-         Powered by ruvector-core with HNSW indexing and SIMD acceleration\n\
-         \n\
-         Features:\n\
-         - SIMD-accelerated distance calculations\n\
-         - HNSW indexing for fast similarity search\n\
-         - Quantization (4-32x memory reduction)\n\
-         - Multi-collection support\n\
-         - Advanced payload filtering with indices\n\
-         - Prometheus metrics export\n\
-         - Snapshot backup and restore\n\
-         - Graph database with Cypher queries\n\
-         - Graph Neural Networks (GNN)\n\
-         - Distributed clustering and sharding\n\
-         - Data replication\n\
-         - Neural LLM routing optimization\n\
-         - Batch operations\n\
-         - Thread-safe operations",
+        "pyruvector v{} - A distributed vector database that learns\n\
+\n\
+Rob-otix Ai Ltd Edition\n\
+\n\
+Store embeddings, query with Cypher, scale horizontally with Raft consensus,\n\
+and let the index improve itself through Graph Neural Networks.\n\
+\n\
+Core Features:\n\
+  - Vector Search: HNSW index, <1ms latency, SIMD acceleration\n\
+  - Cypher Queries: Neo4j-style MATCH, WHERE, CREATE, RETURN\n\
+  - GNN Layers: Search improves with usage via neural networks\n\
+  - Hyperedges: Connect 3+ nodes for complex relationships\n\
+  - Collections: Namespace isolation for multi-tenancy\n\
+\n\
+Distributed Systems:\n\
+  - Raft Consensus: Strong consistency with leader election\n\
+  - Auto-Sharding: Scale to billions of vectors\n\
+  - Multi-Master Replication: High availability, no SPOF\n\
+  - Snapshots: Point-in-time backup and restore\n\
+\n\
+AI & ML:\n\
+  - Compression: 2-32x memory reduction (Scalar/Product/Binary)\n\
+  - Tiny Dancer: FastGRNN neural inference for AI routing\n\
+  - Semantic Router: Optimize LLM inference costs\n\
+\n\
+Think of it as: Pinecone + Neo4j + PyTorch + etcd in one Python package.",
         env!("CARGO_PKG_VERSION")
     )
 }
@@ -179,7 +189,7 @@ fn info() -> String {
 fn _pyruvector(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     // Add version information
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add("__author__", "rUv")?;
+    m.add("__author__", "rUv / Rob-otix Ai Ltd")?;
     m.add(
         "__description__",
         "High-performance vector database with SIMD acceleration",
@@ -273,24 +283,28 @@ fn _pyruvector(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     // Add module documentation
     m.add(
         "__doc__",
-        "pyruvector - High-performance vector database with SIMD acceleration\n\n\
-A Python binding for ruvector, providing efficient vector similarity search\n\
-with HNSW indexing and quantization support.\n\n\
-Features:\n\
-  - SIMD-accelerated distance calculations\n\
-  - HNSW (Hierarchical Navigable Small World) indexing\n\
-  - Quantization for memory efficiency (4-32x reduction)\n\
-  - Multi-collection support with CollectionManager\n\
-  - Advanced payload filtering with indices\n\
-  - Prometheus metrics export\n\
-  - Snapshot backup and restore\n\
-  - Graph database with Cypher queries\n\
-  - Graph Neural Networks (GNN)\n\
-  - Distributed clustering and sharding\n\
-  - Data replication\n\
-  - Neural LLM routing optimization\n\
-  - Batch operations\n\
-  - Thread-safe operations\n\n\
+        "pyruvector - A distributed vector database that learns.\n\n\
+Rob-otix Ai Ltd Edition\n\n\
+Store embeddings, query with Cypher, scale horizontally with Raft consensus,\n\
+and let the index improve itself through Graph Neural Networks.\n\n\
+Python bindings for rUvector - the Rust vector database ecosystem.\n\n\
+Core Features:\n\
+  - Vector Search: HNSW index, <1ms latency, SIMD acceleration\n\
+  - Cypher Queries: Neo4j-style graph queries (MATCH, WHERE, CREATE, RETURN)\n\
+  - GNN Layers: Neural network on index topology - search improves with usage\n\
+  - Hyperedges: Connect 3+ nodes for complex relationships\n\
+  - Metadata Filtering: Combine semantic + structured search\n\
+  - Collections: Namespace isolation for multi-tenancy\n\n\
+Distributed Systems:\n\
+  - Raft Consensus: Leader election, log replication, strong consistency\n\
+  - Auto-Sharding: Consistent hashing, shard migration\n\
+  - Multi-Master Replication: Write to any node, conflict resolution\n\
+  - Snapshots: Point-in-time backups with incremental support\n\n\
+AI & ML:\n\
+  - Tensor Compression: 2-32x memory reduction (Scalar/Product/Binary)\n\
+  - Semantic Router: Route queries to optimal endpoints (Tiny Dancer)\n\
+  - Adaptive Routing: Learn optimal strategies, minimize latency\n\n\
+Think of it as: Pinecone + Neo4j + PyTorch + etcd in one Python package.\n\n\
 Requires Python 3.9 or higher.",
     )?;
 

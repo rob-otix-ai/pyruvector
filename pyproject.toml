@@ -5,15 +5,17 @@ build-backend = "maturin"
 [project]
 name = "pyruvector"
 version = "0.1.0"
-description = "High-performance Python bindings for rUvector - HNSW-powered vector database with advanced quantization and multi-tenancy"
+description = "A distributed vector database that learns - Python bindings for rUvector with HNSW indexing, GNN layers, Raft consensus, and Tiny Dancer AI routing"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
-    { name = "rUv", email = "ruv@ruv.io" }
+    { name = "rUv", email = "ruv@ruv.io" },
+    { name = "Rob-otix Ai Ltd", email = "hello@rob-otix.com" }
 ]
 maintainers = [
-    { name = "rUv", email = "ruv@ruv.io" }
+    { name = "rUv", email = "ruv@ruv.io" },
+    { name = "Rob-otix Ai Ltd", email = "hello@rob-otix.com" }
 ]
 keywords = [
     "vector-database",
@@ -38,11 +40,11 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Rust",
     "Topic :: Database",
