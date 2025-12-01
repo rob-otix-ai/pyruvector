@@ -10,8 +10,6 @@ This module tests:
 - Message passing mechanisms
 """
 import pytest
-import numpy as np
-from typing import List, Tuple
 
 
 # Mock imports until the actual module is implemented

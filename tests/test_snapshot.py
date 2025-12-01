@@ -1,11 +1,9 @@
 """Tests for snapshot backup/restore functionality."""
 import pytest
 import tempfile
-import os
 from pyruvector import (
     VectorDB,
     SnapshotManager,
-    SnapshotInfo,
 )
 
 

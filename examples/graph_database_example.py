@@ -18,10 +18,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from pyruvector import (
         GraphDB,
-        Node,
-        Edge,
-        Transaction,
-        IsolationLevel,
+        Node,  # noqa: F401
+        Edge,  # noqa: F401
+        Transaction,  # noqa: F401
+        IsolationLevel,  # noqa: F401
     )
 except ImportError:
     print("Error: pyruvector not built. Run 'maturin develop' first.")

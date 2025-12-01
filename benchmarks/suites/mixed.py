@@ -12,7 +12,7 @@ Tests real-world usage patterns:
 import sys
 import time
 import traceback
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 import numpy as np
 import os
 from collections import defaultdict
@@ -92,7 +92,7 @@ def benchmark_read_heavy(config: Dict[str, Any], metrics: MetricsCollector) -> D
         else:  # search
             query = query_vectors[search_idx % len(query_vectors)]
             start = time.perf_counter()
-            results = db.search(query, k=k)
+            db.search(query, k=k)
             latency = (time.perf_counter() - start) * 1000
             search_latencies.append(latency)
             search_idx += 1
@@ -158,7 +158,7 @@ def benchmark_write_heavy(config: Dict[str, Any], metrics: MetricsCollector) -> 
         else:  # search
             query = query_vectors[search_idx % len(query_vectors)]
             start = time.perf_counter()
-            results = db.search(query, k=k)
+            db.search(query, k=k)
             latency = (time.perf_counter() - start) * 1000
             search_latencies.append(latency)
             search_idx += 1
@@ -224,7 +224,7 @@ def benchmark_balanced(config: Dict[str, Any], metrics: MetricsCollector) -> Dic
         else:  # search
             query = query_vectors[search_idx % len(query_vectors)]
             start = time.perf_counter()
-            results = db.search(query, k=k)
+            db.search(query, k=k)
             latency = (time.perf_counter() - start) * 1000
             search_latencies.append(latency)
             search_idx += 1
@@ -296,7 +296,7 @@ def benchmark_sustained_throughput(config: Dict[str, Any], metrics: MetricsColle
         else:  # search
             query = query_vectors[search_idx % len(query_vectors)]
             op_start = time.perf_counter()
-            results = db.search(query, k=k)
+            db.search(query, k=k)
             latency = (time.perf_counter() - op_start) * 1000
             latencies_by_second[elapsed_seconds].append(latency)
             search_idx += 1
@@ -348,7 +348,7 @@ def run(config: Dict[str, Any]) -> BenchmarkResult:
     errors = []
 
     print(f"\n{'='*60}")
-    print(f"Running Mixed Workload Benchmark Suite")
+    print("Running Mixed Workload Benchmark Suite")
     print(f"{'='*60}\n")
 
     # Track overall suite execution
@@ -378,7 +378,7 @@ def run(config: Dict[str, Any]) -> BenchmarkResult:
         except Exception as e:
             error_msg = f"{test_name}: {str(e)}\n{traceback.format_exc()}"
             errors.append(error_msg)
-            print(f"✗ FAILED")
+            print("✗ FAILED")
             print(f"  Error: {str(e)}")
 
     suite_duration = time.perf_counter() - suite_start

@@ -3,19 +3,16 @@
 //! This module wraps ruvector-snapshot and provides Python bindings for
 //! creating, managing, and restoring database snapshots.
 
+use pyo3::exceptions::{PyIOError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use pyo3::exceptions::{PyIOError, PyRuntimeError, PyValueError};
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use ruvector_snapshot::{
-    SnapshotManager as RuvectorSnapshotManager,
-    Snapshot as RuvectorSnapshot,
-    SnapshotData as RuvectorSnapshotData,
+    LocalStorage, Snapshot as RuvectorSnapshot, SnapshotData as RuvectorSnapshotData,
+    SnapshotManager as RuvectorSnapshotManager, SnapshotStorage,
     VectorRecord as RuvectorVectorRecord,
-    LocalStorage,
-    SnapshotStorage,
 };
 
 use crate::db::VectorDB;
@@ -265,7 +262,7 @@ impl SnapshotManager {
         if vectors.is_empty() {
             return Err(PyValueError::new_err(
                 "Cannot create snapshot: No valid vectors found. \n\
-                 Ensure the provided vector_ids exist in the database."
+                 Ensure the provided vector_ids exist in the database.",
             ));
         }
 
@@ -278,18 +275,18 @@ impl SnapshotManager {
             db.hnsw_config.ef_construction,
             db.hnsw_config.ef_search,
             vectors,
-        ).map_err(|e| PyRuntimeError::new_err(format!("Failed to build snapshot: {}", e)))?;
+        )
+        .map_err(|e| PyRuntimeError::new_err(format!("Failed to build snapshot: {}", e)))?;
 
         // Store description in metadata if needed
         let _description = description; // Store for later use if needed
 
         // Create the snapshot using the async runtime
         let inner = Arc::clone(&self.inner);
-        let snapshot = self.runtime.block_on(async move {
-            inner.create_snapshot(snapshot_data).await
-        }).map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to create snapshot: {}", e))
-        })?;
+        let snapshot = self
+            .runtime
+            .block_on(async move { inner.create_snapshot(snapshot_data).await })
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to create snapshot: {}", e)))?;
 
         // Convert to Python-friendly SnapshotInfo
         let mut info = SnapshotInfo::from(snapshot);
@@ -339,18 +336,18 @@ impl SnapshotManager {
             db.hnsw_config.ef_construction,
             db.hnsw_config.ef_search,
             vectors,
-        ).map_err(|e| PyRuntimeError::new_err(format!("Failed to build snapshot: {}", e)))?;
+        )
+        .map_err(|e| PyRuntimeError::new_err(format!("Failed to build snapshot: {}", e)))?;
 
         // Store description in metadata if needed
         let _description = description; // Store for later use if needed
 
         // Create the snapshot using the async runtime
         let inner = Arc::clone(&self.inner);
-        let snapshot = self.runtime.block_on(async move {
-            inner.create_snapshot(snapshot_data).await
-        }).map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to create snapshot: {}", e))
-        })?;
+        let snapshot = self
+            .runtime
+            .block_on(async move { inner.create_snapshot(snapshot_data).await })
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to create snapshot: {}", e)))?;
 
         // Convert to Python-friendly SnapshotInfo
         let mut info = SnapshotInfo::from(snapshot);
@@ -372,11 +369,10 @@ impl SnapshotManager {
     /// ```
     pub fn list_snapshots(&self) -> PyResult<Vec<SnapshotInfo>> {
         let inner = Arc::clone(&self.inner);
-        let snapshots = self.runtime.block_on(async move {
-            inner.list_snapshots().await
-        }).map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to list snapshots: {}", e))
-        })?;
+        let snapshots = self
+            .runtime
+            .block_on(async move { inner.list_snapshots().await })
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to list snapshots: {}", e)))?;
 
         Ok(snapshots.into_iter().map(SnapshotInfo::from).collect())
     }
@@ -399,11 +395,10 @@ impl SnapshotManager {
         let inner = Arc::clone(&self.inner);
         let snapshot_id_clone = snapshot_id.clone();
 
-        let snapshot_data = self.runtime.block_on(async move {
-            inner.restore_snapshot(&snapshot_id_clone).await
-        }).map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to restore snapshot: {}", e))
-        })?;
+        let snapshot_data = self
+            .runtime
+            .block_on(async move { inner.restore_snapshot(&snapshot_id_clone).await })
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to restore snapshot: {}", e)))?;
 
         // Convert ruvector-snapshot types back to VectorDB
         self.create_db_from_snapshot_data(snapshot_data)
@@ -426,11 +421,9 @@ impl SnapshotManager {
         let inner = Arc::clone(&self.inner);
         let snapshot_id_clone = snapshot_id.clone();
 
-        self.runtime.block_on(async move {
-            inner.delete_snapshot(&snapshot_id_clone).await
-        }).map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to delete snapshot: {}", e))
-        })?;
+        self.runtime
+            .block_on(async move { inner.delete_snapshot(&snapshot_id_clone).await })
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to delete snapshot: {}", e)))?;
 
         Ok(true)
     }
@@ -454,9 +447,9 @@ impl SnapshotManager {
         let inner = Arc::clone(&self.inner);
         let snapshot_id_clone = snapshot_id.clone();
 
-        let snapshot = self.runtime.block_on(async move {
-            inner.get_snapshot_info(&snapshot_id_clone).await
-        });
+        let snapshot = self
+            .runtime
+            .block_on(async move { inner.get_snapshot_info(&snapshot_id_clone).await });
 
         match snapshot {
             Ok(s) => Ok(Some(SnapshotInfo::from(s))),
@@ -469,11 +462,9 @@ impl SnapshotManager {
     fn total_size_bytes(&self) -> PyResult<u64> {
         let inner = Arc::clone(&self.inner);
 
-        self.runtime.block_on(async move {
-            inner.total_size().await
-        }).map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to get total size: {}", e))
-        })
+        self.runtime
+            .block_on(async move { inner.total_size().await })
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get total size: {}", e)))
     }
 
     /// Get total size of all snapshots in MB
@@ -505,7 +496,11 @@ impl SnapshotManager {
     ///
     /// This method retrieves vectors from the database using the provided list of IDs.
     /// It's used by both create_snapshot_with_ids() and the deprecated create_snapshot().
-    fn extract_vectors_with_ids(&self, db: &VectorDB, vector_ids: Vec<String>) -> PyResult<Vec<RuvectorVectorRecord>> {
+    fn extract_vectors_with_ids(
+        &self,
+        db: &VectorDB,
+        vector_ids: Vec<String>,
+    ) -> PyResult<Vec<RuvectorVectorRecord>> {
         if vector_ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -518,19 +513,13 @@ impl SnapshotManager {
         for (id, vector_data, metadata) in results {
             // Convert metadata HashMap to serde_json::Value if present
             let payload = if !metadata.is_empty() {
-                Some(serde_json::Value::Object(
-                    metadata.into_iter().collect()
-                ))
+                Some(serde_json::Value::Object(metadata.into_iter().collect()))
             } else {
                 None
             };
 
             // Create RuvectorVectorRecord
-            vectors.push(RuvectorVectorRecord::new(
-                id,
-                vector_data,
-                payload,
-            ));
+            vectors.push(RuvectorVectorRecord::new(id, vector_data, payload));
         }
 
         Ok(vectors)
@@ -581,7 +570,7 @@ impl SnapshotManager {
                          manager.create_snapshot_with_ids(db, 'backup', ids)\n\
                          \n\
                          For persistence, file-backed databases (created with 'path' parameter) \n\
-                         automatically save to disk - no snapshot needed for basic persistence."
+                         automatically save to disk - no snapshot needed for basic persistence.",
                     ));
                 } else {
                     // In-memory database
@@ -598,7 +587,7 @@ impl SnapshotManager {
                 // Empty database - snapshots cannot be empty per ruvector-snapshot requirements
                 return Err(PyValueError::new_err(
                     "Cannot create snapshot of empty database. \n\
-                     Insert at least one vector before creating a snapshot."
+                     Insert at least one vector before creating a snapshot.",
                 ));
             }
         }
@@ -637,8 +626,14 @@ impl SnapshotManager {
         let hnsw_config = if let Some(hnsw) = snapshot_json["config"]["hnsw_config"].as_object() {
             HNSWConfig {
                 m: hnsw.get("m").and_then(|v| v.as_u64()).unwrap_or(16) as usize,
-                ef_construction: hnsw.get("ef_construction").and_then(|v| v.as_u64()).unwrap_or(200) as usize,
-                ef_search: hnsw.get("ef_search").and_then(|v| v.as_u64()).unwrap_or(200) as usize,
+                ef_construction: hnsw
+                    .get("ef_construction")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(200) as usize,
+                ef_search: hnsw
+                    .get("ef_search")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(200) as usize,
                 max_elements: None,
             }
         } else {

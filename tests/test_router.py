@@ -13,8 +13,6 @@ This module tests:
 - Fallback mechanisms
 """
 import pytest
-import time
-from typing import List, Dict, Optional
 
 
 # Mock imports until the actual module is implemented

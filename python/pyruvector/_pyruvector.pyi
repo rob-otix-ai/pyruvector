@@ -4,7 +4,7 @@ Type stubs for pyruvector native bindings.
 This file provides complete type information for IDE support and type checking.
 """
 
-from typing import Any, Dict, List, Literal, Optional, TypedDict, Union, Tuple
+from typing import Any, Dict, List, Optional, TypedDict, Union, Tuple
 
 # ============================================================================
 # Filter Types

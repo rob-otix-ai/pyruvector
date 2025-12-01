@@ -14,7 +14,6 @@ from pyruvector import (
     GNNLayer,
     GNNConfig,
     TrainConfig,
-    TrainingMetrics,
     OptimizerType,
     SchedulerType,
     Tensor,

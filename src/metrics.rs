@@ -1,9 +1,6 @@
-use pyo3::prelude::*;
-use prometheus::{
-    CounterVec, Encoder, Gauge, GaugeVec, HistogramVec, Opts, Registry,
-    TextEncoder,
-};
 use lazy_static::lazy_static;
+use prometheus::{CounterVec, Encoder, Gauge, GaugeVec, HistogramVec, Opts, Registry, TextEncoder};
+use pyo3::prelude::*;
 
 lazy_static! {
     /// Global Prometheus registry for all metrics
@@ -107,7 +104,12 @@ impl MetricsRecorder {
     /// * `duration_seconds` - Duration of the search in seconds
     /// * `success` - Whether the search was successful
     #[pyo3(text_signature = "($self, collection, duration_seconds, success)")]
-    pub fn record_search(&self, collection: String, duration_seconds: f64, success: bool) -> PyResult<()> {
+    pub fn record_search(
+        &self,
+        collection: String,
+        duration_seconds: f64,
+        success: bool,
+    ) -> PyResult<()> {
         let status = if success { "success" } else { "error" };
 
         // Increment search counter
@@ -122,9 +124,7 @@ impl MetricsRecorder {
 
         // Increment error counter if failed
         if !success {
-            SEARCH_ERRORS
-                .with_label_values(&[&collection])
-                .inc();
+            SEARCH_ERRORS.with_label_values(&[&collection]).inc();
         }
 
         Ok(())
@@ -137,7 +137,12 @@ impl MetricsRecorder {
     /// * `count` - Number of vectors inserted
     /// * `duration_seconds` - Duration of the insert in seconds
     #[pyo3(text_signature = "($self, collection, count, duration_seconds)")]
-    pub fn record_insert(&self, collection: String, count: usize, duration_seconds: f64) -> PyResult<()> {
+    pub fn record_insert(
+        &self,
+        collection: String,
+        count: usize,
+        duration_seconds: f64,
+    ) -> PyResult<()> {
         // Increment insert counter by count
         INSERT_REQUESTS
             .with_label_values(&[&collection])
@@ -198,9 +203,7 @@ impl MetricsRecorder {
     #[pyo3(text_signature = "($self, collection)")]
     pub fn reset_collection_metrics(&self, collection: String) -> PyResult<()> {
         // Reset vector count to 0
-        VECTORS_TOTAL
-            .with_label_values(&[&collection])
-            .set(0.0);
+        VECTORS_TOTAL.with_label_values(&[&collection]).set(0.0);
 
         Ok(())
     }
@@ -216,15 +219,19 @@ pub fn gather_metrics() -> PyResult<String> {
     let metric_families = REGISTRY.gather();
 
     let mut buffer = Vec::new();
-    encoder.encode(&metric_families, &mut buffer)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            format!("Failed to encode metrics: {}", e)
-        ))?;
-
-    String::from_utf8(buffer)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            format!("Failed to convert metrics to string: {}", e)
+    encoder.encode(&metric_families, &mut buffer).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+            "Failed to encode metrics: {}",
+            e
         ))
+    })?;
+
+    String::from_utf8(buffer).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+            "Failed to convert metrics to string: {}",
+            e
+        ))
+    })
 }
 
 #[cfg(test)]
@@ -234,13 +241,17 @@ mod tests {
     #[test]
     fn test_metrics_recorder_creation() {
         let recorder = MetricsRecorder::new();
-        assert!(recorder.record_search("test".to_string(), 0.5, true).is_ok());
+        assert!(recorder
+            .record_search("test".to_string(), 0.5, true)
+            .is_ok());
     }
 
     #[test]
     fn test_gather_metrics() {
         let recorder = MetricsRecorder::new();
-        recorder.record_search("test".to_string(), 0.1, true).unwrap();
+        recorder
+            .record_search("test".to_string(), 0.1, true)
+            .unwrap();
 
         let metrics_text = gather_metrics().unwrap();
         assert!(metrics_text.contains("pyruvector_search_requests_total"));

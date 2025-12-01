@@ -14,7 +14,6 @@ import sys
 sys.path.insert(0, "../target/release")
 
 from pyruvector import (
-    VectorDB,
     PayloadIndexManager,
     FilterBuilder,
     FilterEvaluator,

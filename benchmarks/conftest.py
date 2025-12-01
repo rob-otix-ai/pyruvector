@@ -11,8 +11,7 @@ Provides reusable fixtures for:
 import os
 import pytest
 import numpy as np
-from pathlib import Path
-from typing import List, Dict, Callable
+from typing import List, Dict
 
 # ============================================================================
 # Import Real pyruvector - Fail Fast if Not Built
@@ -243,33 +242,6 @@ def populated_db_medium(vector_generator, metadata_generator) -> VectorDB:
     """
     dimensions = 128
     count = 10000
-
-    db = VectorDB(dimensions=dimensions, distance_metric=DistanceMetric.Cosine)
-    vectors = vector_generator(dimensions, count)
-    metadata = metadata_generator(count)
-
-    # Create IDs for batch insertion
-    ids = [f"vec_{i}" for i in range(count)]
-    # Convert metadata list to list of dicts for insert_batch
-    metadata_dicts = [dict(m) if m else None for m in metadata]
-
-    db.insert_batch(ids, vectors, metadata_dicts)
-
-    yield db
-
-
-@pytest.fixture
-def populated_db_large(vector_generator, metadata_generator) -> VectorDB:
-    """
-    Create a VectorDB with 100K vectors (scaling tests).
-
-    Note: Marked as slow, only runs in full benchmark suite.
-
-    Yields:
-        VectorDB with 100,000 vectors
-    """
-    dimensions = 128
-    count = 100000
 
     db = VectorDB(dimensions=dimensions, distance_metric=DistanceMetric.Cosine)
     vectors = vector_generator(dimensions, count)

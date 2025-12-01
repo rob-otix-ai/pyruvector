@@ -60,11 +60,11 @@ def main():
 
     print(f"\nLoading database from {db_path}...")
     loaded_db = VectorDB.load(db_path)
-    print(f"Database loaded successfully")
+    print("Database loaded successfully")
     print(f"Vector count: {loaded_db.count()}")
 
     # Search in loaded database
-    print(f"\nSearch results after loading:")
+    print("\nSearch results after loading:")
     results = loaded_db.search(query, k=3)
 
     for i, r in enumerate(results, 1):
@@ -81,7 +81,7 @@ def main():
 
     print(f"New vector count: {loaded_db.count()}")
 
-    print(f"\nSaving updated database...")
+    print("\nSaving updated database...")
     loaded_db.save(db_path)
     print("Database saved successfully")
 
@@ -94,7 +94,7 @@ def main():
     print(f"\nFinal database vector count: {final_db.count()}")
 
     results = final_db.search(query, k=5)
-    print(f"\nFinal search results (top 5):")
+    print("\nFinal search results (top 5):")
     for i, r in enumerate(results, 1):
         print(f"  {i}. {r['metadata']['name']} - distance: {r['distance']:.4f}")
 

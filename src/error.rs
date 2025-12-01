@@ -34,18 +34,14 @@ pub enum PyRuVectorError {
 impl From<PyRuVectorError> for PyErr {
     fn from(err: PyRuVectorError) -> PyErr {
         match err {
-            PyRuVectorError::InvalidDimensions { expected, got } => {
-                PyValueError::new_err(format!(
-                    "Invalid dimensions: expected {}, got {}",
-                    expected, got
-                ))
-            }
+            PyRuVectorError::InvalidDimensions { expected, got } => PyValueError::new_err(format!(
+                "Invalid dimensions: expected {}, got {}",
+                expected, got
+            )),
             PyRuVectorError::InvalidFilter { message } => {
                 PyValueError::new_err(format!("Invalid filter: {}", message))
             }
-            PyRuVectorError::NotFound { id } => {
-                PyKeyError::new_err(format!("Not found: {}", id))
-            }
+            PyRuVectorError::NotFound { id } => PyKeyError::new_err(format!("Not found: {}", id)),
             PyRuVectorError::PersistenceError { message } => {
                 PyIOError::new_err(format!("Persistence error: {}", message))
             }

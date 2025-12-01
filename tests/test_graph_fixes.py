@@ -115,10 +115,10 @@ class TestPersistence:
 
             alice = graph1.create_node("Person", {"name": "Alice", "age": 30})
             bob = graph1.create_node("Person", {"name": "Bob", "age": 25})
-            edge = graph1.create_edge(alice, bob, "KNOWS", {"since": 2020})
+            graph1.create_edge(alice, bob, "KNOWS", {"since": 2020})
 
             # Save to disk
-            assert graph1.save() == True
+            assert graph1.save()
 
             # Load from disk
             graph2 = GraphDB.load(temp_path)
@@ -235,7 +235,7 @@ class TestHyperedgeCRUD:
 
         assert loaded_props["type"] == "team"
         assert loaded_props["score"] == 95.5
-        assert loaded_props["active"] == True
+        assert loaded_props["active"]
 
     @pytestmark_delete_hyperedge
     def test_delete_hyperedge(self):
@@ -247,7 +247,7 @@ class TestHyperedgeCRUD:
 
         # Delete it
         result = self.graph.delete_hyperedge(he_id)
-        assert result == True
+        assert result
 
         # Verify it's gone
         assert self.graph.get_hyperedge(he_id) is None
@@ -256,7 +256,7 @@ class TestHyperedgeCRUD:
     def test_delete_nonexistent_hyperedge(self):
         """Test deleting non-existent hyperedge returns False"""
         result = self.graph.delete_hyperedge("nonexistent-id")
-        assert result == False
+        assert not result
 
     def test_hyperedge_minimum_nodes(self):
         """Test that hyperedge requires at least 2 nodes"""

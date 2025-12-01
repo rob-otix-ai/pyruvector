@@ -8,7 +8,6 @@ from pyruvector import (
     HNSWConfig,
     QuantizationConfig,
     DbOptions,
-    HealthStatus,
     version,
     info,
 )

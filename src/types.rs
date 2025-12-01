@@ -522,10 +522,8 @@ pub fn json_value_to_pyobject(py: Python, value: &Value) -> PyResult<PyObject> {
         }
         Value::String(s) => Ok(PyString::new(py, s).into()),
         Value::Array(arr) => {
-            let list: PyResult<Vec<PyObject>> = arr
-                .iter()
-                .map(|v| json_value_to_pyobject(py, v))
-                .collect();
+            let list: PyResult<Vec<PyObject>> =
+                arr.iter().map(|v| json_value_to_pyobject(py, v)).collect();
             Ok(list?.into_py(py))
         }
         Value::Object(obj) => {

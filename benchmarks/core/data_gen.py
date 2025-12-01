@@ -6,7 +6,7 @@ embedding workloads.
 """
 
 import numpy as np
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 from dataclasses import dataclass
 
 

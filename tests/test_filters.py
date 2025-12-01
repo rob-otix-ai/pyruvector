@@ -4,7 +4,6 @@ Tests for metadata filtering functionality in VectorDB.
 
 import pytest
 import numpy as np
-from pyruvector import VectorDB
 
 
 class TestFilters:

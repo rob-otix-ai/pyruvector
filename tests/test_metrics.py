@@ -1,5 +1,4 @@
 """Tests for Prometheus metrics functionality."""
-import pytest
 from pyruvector import MetricsRecorder, gather_metrics
 
 

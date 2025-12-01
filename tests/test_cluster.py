@@ -10,8 +10,6 @@ This module tests:
 - Load balancing
 """
 import pytest
-import time
-from typing import List, Dict
 
 
 # Mock imports until the actual module is implemented

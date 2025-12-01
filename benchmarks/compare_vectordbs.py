@@ -16,7 +16,7 @@ from pathlib import Path
 
 # Fail-fast imports - no mocks, no fallbacks
 try:
-    from pyruvector import VectorDB, DistanceMetric, HNSWConfig, DbOptions
+    from pyruvector import VectorDB  # noqa: F401 - DistanceMetric, HNSWConfig, DbOptions available for future use
 except ImportError as e:
     print("Error: pyruvector must be built before running benchmarks.")
     print("Run: maturin develop --release")
@@ -354,7 +354,7 @@ class QdrantBenchmark:
         if self.client:
             try:
                 self.client.delete_collection(self.collection_name)
-            except:
+            except Exception:
                 pass
         self.client = None
         self.inserted_vectors = []

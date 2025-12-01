@@ -79,7 +79,7 @@ class Timer:
             yield timer
         finally:
             timer.__exit__(None, None, None)
-            result = TimingResult(
+            TimingResult(
                 operation=operation,
                 duration_ms=timer.duration_ms,
                 metadata=metadata or {}

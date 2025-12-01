@@ -15,12 +15,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from pyruvector import (
         GraphDB,
-        Node,
-        Edge,
-        Hyperedge,
+        Node,  # noqa: F401
+        Edge,  # noqa: F401
+        Hyperedge,  # noqa: F401
         Transaction,
         IsolationLevel,
-        QueryResult,
+        QueryResult,  # noqa: F401
     )
     GRAPH_AVAILABLE = True
 except ImportError:
@@ -248,8 +248,8 @@ class TestEdge:
         node2 = graph_db.create_node("Person")
         node3 = graph_db.create_node("Person")
 
-        edge1 = graph_db.create_edge(node1, node2, "KNOWS")
-        edge2 = graph_db.create_edge(node2, node3, "KNOWS")
+        graph_db.create_edge(node1, node2, "KNOWS")
+        graph_db.create_edge(node2, node3, "KNOWS")
 
         # Delete middle node
         graph_db.delete_node(node2)

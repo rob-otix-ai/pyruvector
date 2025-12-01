@@ -5,27 +5,20 @@
 //! - VectorDB with HNSW indexing from ruvector-router-core
 //! - Feature engineering and training infrastructure
 
-use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 // Import from ruvector-tiny-dancer-core
 use ruvector_tiny_dancer_core::{
-    Router as TinyDancerRouter,
-    Candidate as TDCandidate,
-    RoutingRequest as TDRoutingRequest,
-    RoutingResponse as TDRoutingResponse,
-    types::RouterConfig as TDRouterConfig,
+    types::RouterConfig as TDRouterConfig, Candidate as TDCandidate, Router as TinyDancerRouter,
+    RoutingRequest as TDRoutingRequest, RoutingResponse as TDRoutingResponse,
 };
 
 // Import from ruvector-router-core
 use ruvector_router_core::{
-    VectorDB as RuvectorDB,
-    VectorEntry,
-    SearchQuery,
-    DistanceMetric,
-    types::VectorDbConfig,
+    types::VectorDbConfig, DistanceMetric, SearchQuery, VectorDB as RuvectorDB, VectorEntry,
 };
 
 /// Candidate model/endpoint for LLM routing
@@ -334,7 +327,9 @@ impl TrainingDataset {
     #[new]
     fn new(features: Vec<Vec<f32>>, labels: Vec<f32>) -> PyResult<Self> {
         if features.len() != labels.len() {
-            return Err(PyValueError::new_err("Features and labels must have the same length"));
+            return Err(PyValueError::new_err(
+                "Features and labels must have the same length",
+            ));
         }
         if features.is_empty() {
             return Err(PyValueError::new_err("Dataset cannot be empty"));
@@ -498,11 +493,8 @@ impl NeuralRouter {
         let router = self.router.read().unwrap();
 
         // Convert Python candidates to Tiny Dancer candidates
-        let td_candidates: Vec<TDCandidate> = request
-            .candidates
-            .iter()
-            .map(|c| c.inner.clone())
-            .collect();
+        let td_candidates: Vec<TDCandidate> =
+            request.candidates.iter().map(|c| c.inner.clone()).collect();
 
         // Create Tiny Dancer routing request
         let td_request = TDRoutingRequest {
@@ -533,12 +525,16 @@ impl NeuralRouter {
     ///
     /// # Returns
     /// List of TrainingMetrics for each epoch (placeholder)
-    fn train(&self, _dataset: &TrainingDataset, _config: &TrainingConfig) -> PyResult<Vec<TrainingMetrics>> {
+    fn train(
+        &self,
+        _dataset: &TrainingDataset,
+        _config: &TrainingConfig,
+    ) -> PyResult<Vec<TrainingMetrics>> {
         // Return placeholder metrics
         // TODO: Expose training API when ruvector-tiny-dancer-core makes it public
         Err(PyValueError::new_err(
             "Training is not yet supported in the Python bindings. \
-             Use the ruvector-tiny-dancer-core Rust crate directly for training."
+             Use the ruvector-tiny-dancer-core Rust crate directly for training.",
         ))
     }
 

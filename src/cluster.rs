@@ -1,22 +1,18 @@
+use parking_lot::Mutex;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-use std::net::{SocketAddr, IpAddr, Ipv4Addr};
-use serde::{Deserialize, Serialize};
-use parking_lot::Mutex;
 use tokio::runtime::Runtime;
 
 use ruvector_cluster::{
-    ClusterManager as RuvectorClusterManager,
-    ClusterConfig as RuvectorClusterConfig,
-    ClusterNode as RuvectorClusterNode,
-    ClusterStats as RuvectorClusterStats,
-    NodeStatus as RuvectorNodeStatus,
-    ShardInfo as RuvectorShardInfo,
-    ShardStatus as RuvectorShardStatus,
-    StaticDiscovery,
+    ClusterConfig as RuvectorClusterConfig, ClusterManager as RuvectorClusterManager,
+    ClusterNode as RuvectorClusterNode, ClusterStats as RuvectorClusterStats,
+    NodeStatus as RuvectorNodeStatus, ShardInfo as RuvectorShardInfo,
+    ShardStatus as RuvectorShardStatus, StaticDiscovery,
 };
 
 // ============================================================================
@@ -284,8 +280,14 @@ impl ClusterConfig {
         let dict = PyDict::new(py);
         dict.set_item("replication_factor", self.inner.replication_factor)?;
         dict.set_item("shard_count", self.inner.shard_count)?;
-        dict.set_item("heartbeat_interval_ms", self.inner.heartbeat_interval.as_millis() as u64)?;
-        dict.set_item("node_timeout_ms", self.inner.node_timeout.as_millis() as u64)?;
+        dict.set_item(
+            "heartbeat_interval_ms",
+            self.inner.heartbeat_interval.as_millis() as u64,
+        )?;
+        dict.set_item(
+            "node_timeout_ms",
+            self.inner.node_timeout.as_millis() as u64,
+        )?;
         dict.set_item("enable_consensus", self.inner.enable_consensus)?;
         dict.set_item("min_quorum", self.inner.min_quorum_size)?;
         Ok(dict.into())
@@ -327,11 +329,10 @@ impl ClusterNode {
     #[pyo3(signature = (node_id, address, capacity=1.0))]
     fn new(node_id: String, address: String, capacity: f64) -> PyResult<Self> {
         // Parse address as IP:port
-        let socket_addr = address.parse::<SocketAddr>()
-            .unwrap_or_else(|_| {
-                // Default to localhost with random port if parsing fails
-                SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8000)
-            });
+        let socket_addr = address.parse::<SocketAddr>().unwrap_or_else(|_| {
+            // Default to localhost with random port if parsing fails
+            SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8000)
+        });
 
         let mut node = RuvectorClusterNode::new(node_id, socket_addr);
         node.capacity = capacity;
@@ -355,10 +356,9 @@ impl ClusterNode {
 
     #[setter]
     fn set_address(&mut self, value: String) -> PyResult<()> {
-        let socket_addr = value.parse::<SocketAddr>()
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("Invalid address: {}", e)
-            ))?;
+        let socket_addr = value.parse::<SocketAddr>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid address: {}", e))
+        })?;
         self.inner.address = socket_addr;
         Ok(())
     }
@@ -435,15 +435,14 @@ impl ShardInfo {
     #[new]
     fn new(shard_id: String, primary_node: String) -> Self {
         // Convert String shard_id to u32 (parse or hash)
-        let shard_id_num = shard_id.parse::<u32>()
-            .unwrap_or_else(|_| {
-                // If not a number, use a hash
-                use std::collections::hash_map::DefaultHasher;
-                use std::hash::{Hash, Hasher};
-                let mut hasher = DefaultHasher::new();
-                shard_id.hash(&mut hasher);
-                (hasher.finish() % u32::MAX as u64) as u32
-            });
+        let shard_id_num = shard_id.parse::<u32>().unwrap_or_else(|_| {
+            // If not a number, use a hash
+            use std::collections::hash_map::DefaultHasher;
+            use std::hash::{Hash, Hasher};
+            let mut hasher = DefaultHasher::new();
+            shard_id.hash(&mut hasher);
+            (hasher.finish() % u32::MAX as u64) as u32
+        });
 
         let inner = RuvectorShardInfo {
             shard_id: shard_id_num,
@@ -566,7 +565,7 @@ impl ClusterStats {
                 total_shards: 0,
                 active_shards: 0,
                 total_vectors: 0,
-            }
+            },
         }
     }
 
@@ -598,8 +597,10 @@ impl ClusterStats {
     fn __repr__(&self) -> String {
         format!(
             "ClusterStats(nodes={}/{}, shards={}/{}, vectors={})",
-            self.inner.healthy_nodes, self.inner.total_nodes,
-            self.inner.active_shards, self.inner.total_shards,
+            self.inner.healthy_nodes,
+            self.inner.total_nodes,
+            self.inner.active_shards,
+            self.inner.total_shards,
             self.inner.total_vectors
         )
     }
@@ -632,12 +633,18 @@ pub struct ClusterManager {
 impl ClusterManager {
     #[new]
     #[pyo3(signature = (config, dimensions=128, _storage_path=None))]
-    fn new(config: ClusterConfig, dimensions: usize, _storage_path: Option<String>) -> PyResult<Self> {
+    fn new(
+        config: ClusterConfig,
+        dimensions: usize,
+        _storage_path: Option<String>,
+    ) -> PyResult<Self> {
         // Create tokio runtime for async operations
-        let runtime = tokio::runtime::Runtime::new()
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                format!("Failed to create runtime: {}", e)
-            ))?;
+        let runtime = tokio::runtime::Runtime::new().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Failed to create runtime: {}",
+                e
+            ))
+        })?;
 
         let node_id = format!("node-{}", uuid::Uuid::new_v4());
 
@@ -645,13 +652,14 @@ impl ClusterManager {
         let discovery = Box::new(StaticDiscovery::new(vec![]));
 
         // Create the cluster manager
-        let cluster_manager = RuvectorClusterManager::new(
-            config.to_ruvector_config(),
-            node_id.clone(),
-            discovery,
-        ).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            format!("Failed to create cluster manager: {}", e)
-        ))?;
+        let cluster_manager =
+            RuvectorClusterManager::new(config.to_ruvector_config(), node_id.clone(), discovery)
+                .map_err(|e| {
+                    PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                        "Failed to create cluster manager: {}",
+                        e
+                    ))
+                })?;
 
         Ok(Self {
             inner: Arc::new(Mutex::new(cluster_manager)),
@@ -678,9 +686,10 @@ impl ClusterManager {
         rt.block_on(async move {
             let mgr = manager.lock();
             mgr.add_node(ruvector_node).await
-        }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            format!("Failed to add node: {}", e)
-        ))?;
+        })
+        .map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Failed to add node: {}", e))
+        })?;
 
         Ok(true)
     }
@@ -693,9 +702,13 @@ impl ClusterManager {
         rt.block_on(async move {
             let mgr = manager.lock();
             mgr.remove_node(&node_id).await
-        }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            format!("Failed to remove node: {}", e)
-        ))?;
+        })
+        .map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Failed to remove node: {}",
+                e
+            ))
+        })?;
 
         Ok(true)
     }
@@ -703,13 +716,17 @@ impl ClusterManager {
     /// Get a specific node
     fn get_node(&self, node_id: String) -> PyResult<Option<ClusterNode>> {
         let manager = self.inner.lock();
-        Ok(manager.get_node(&node_id).map(ClusterNode::from_ruvector_node))
+        Ok(manager
+            .get_node(&node_id)
+            .map(ClusterNode::from_ruvector_node))
     }
 
     /// List all nodes
     fn list_nodes(&self) -> PyResult<Vec<ClusterNode>> {
         let manager = self.inner.lock();
-        Ok(manager.list_nodes().into_iter()
+        Ok(manager
+            .list_nodes()
+            .into_iter()
             .map(ClusterNode::from_ruvector_node)
             .collect())
     }
@@ -717,7 +734,9 @@ impl ClusterManager {
     /// Get healthy nodes
     fn healthy_nodes(&self) -> PyResult<Vec<ClusterNode>> {
         let manager = self.inner.lock();
-        Ok(manager.healthy_nodes().into_iter()
+        Ok(manager
+            .healthy_nodes()
+            .into_iter()
             .map(ClusterNode::from_ruvector_node)
             .collect())
     }
@@ -726,13 +745,17 @@ impl ClusterManager {
     fn get_shard(&self, shard_id: String) -> PyResult<Option<ShardInfo>> {
         let shard_id_num = shard_id.parse::<u32>().unwrap_or(0);
         let manager = self.inner.lock();
-        Ok(manager.get_shard(shard_id_num).map(ShardInfo::from_ruvector_shard))
+        Ok(manager
+            .get_shard(shard_id_num)
+            .map(ShardInfo::from_ruvector_shard))
     }
 
     /// List all shards
     fn list_shards(&self) -> PyResult<Vec<ShardInfo>> {
         let manager = self.inner.lock();
-        Ok(manager.list_shards().into_iter()
+        Ok(manager
+            .list_shards()
+            .into_iter()
             .map(ShardInfo::from_ruvector_shard)
             .collect())
     }
@@ -748,9 +771,7 @@ impl ClusterManager {
     fn get_stats(&self) -> PyResult<ClusterStats> {
         let manager = self.inner.lock();
         let stats = manager.get_stats();
-        Ok(ClusterStats {
-            inner: stats,
-        })
+        Ok(ClusterStats { inner: stats })
     }
 
     /// Start the cluster
@@ -761,9 +782,13 @@ impl ClusterManager {
         rt.block_on(async move {
             let mgr = manager.lock();
             mgr.start().await
-        }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            format!("Failed to start cluster: {}", e)
-        ))?;
+        })
+        .map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Failed to start cluster: {}",
+                e
+            ))
+        })?;
 
         Ok(())
     }
@@ -806,9 +831,7 @@ impl ClusterManager {
         let shard_count = manager.list_shards().len();
         format!(
             "ClusterManager(nodes={}, shards={}, node_id='{}')",
-            node_count,
-            shard_count,
-            self.node_id
+            node_count, shard_count, self.node_id
         )
     }
 }
@@ -972,10 +995,12 @@ impl ReplicaSet {
         let replica_data = self.replica_data.read().unwrap();
 
         // Get replica and check it's not primary
-        let replica = replicas.get(&replica_address)
-            .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("Replica {} not found", replica_address)
-            ))?;
+        let replica = replicas.get(&replica_address).ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Replica {} not found",
+                replica_address
+            ))
+        })?;
 
         if replica.role == ReplicaRole::Primary {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
@@ -984,16 +1009,18 @@ impl ReplicaSet {
         }
 
         // Get primary and replica databases
-        let primary_db_arc = replica_data.get(&self.primary_address)
-            .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                "Primary database not found",
-            ))?
+        let primary_db_arc = replica_data
+            .get(&self.primary_address)
+            .ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Primary database not found")
+            })?
             .clone();
 
-        let _replica_db_arc = replica_data.get(&replica_address)
-            .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                "Replica database not found",
-            ))?
+        let _replica_db_arc = replica_data
+            .get(&replica_address)
+            .ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Replica database not found")
+            })?
             .clone();
 
         drop(replicas);
@@ -1001,10 +1028,12 @@ impl ReplicaSet {
 
         // Get primary count (simplified sync - in real impl would iterate)
         let primary_count = {
-            let primary_db = primary_db_arc.read()
-                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
-            primary_db.len()
-                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Length error: {}", e)))?
+            let primary_db = primary_db_arc.read().map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
+            })?;
+            primary_db.len().map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!("Length error: {}", e))
+            })?
         };
 
         // For now, just return the count as a proxy for "synced"
@@ -1016,7 +1045,8 @@ impl ReplicaSet {
     fn sync_all(&mut self) -> PyResult<HashMap<String, usize>> {
         let secondary_addresses: Vec<String> = {
             let replicas = self.replicas.read().unwrap();
-            replicas.iter()
+            replicas
+                .iter()
                 .filter(|(_, replica)| replica.role == ReplicaRole::Secondary)
                 .map(|(address, _)| address.clone())
                 .collect()
@@ -1046,12 +1076,9 @@ impl ReplicaSet {
     /// Get primary replica
     fn get_primary(&self) -> PyResult<Replica> {
         let replicas = self.replicas.read().unwrap();
-        replicas
-            .get(&self.primary_address)
-            .cloned()
-            .ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Primary replica not found")
-            })
+        replicas.get(&self.primary_address).cloned().ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Primary replica not found")
+        })
     }
 
     /// Promote a replica to primary (with data transfer)
@@ -1060,9 +1087,10 @@ impl ReplicaSet {
         {
             let replicas = self.replicas.read().unwrap();
             if !replicas.contains_key(&address) {
-                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                    format!("Replica {} not found", address),
-                ));
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Replica {} not found",
+                    address
+                )));
             }
         }
 

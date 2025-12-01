@@ -12,7 +12,7 @@ Tests various search scenarios:
 import sys
 import time
 import traceback
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List
 import numpy as np
 import os
 
@@ -88,7 +88,7 @@ def benchmark_basic_knn(config: Dict[str, Any], metrics: MetricsCollector) -> Di
     latencies = []
     for query in query_vectors:
         start = time.perf_counter()
-        results = db.search(query, k=k)
+        db.search(query, k=k)
         latency = (time.perf_counter() - start) * 1000  # ms
         latencies.append(latency)
 
@@ -129,7 +129,7 @@ def benchmark_varying_k(config: Dict[str, Any], metrics: MetricsCollector) -> Di
         latencies = []
         for query in query_vectors:
             start = time.perf_counter()
-            results_list = db.search(query, k=k)
+            db.search(query, k=k)
             latency = (time.perf_counter() - start) * 1000  # ms
             latencies.append(latency)
 
@@ -265,7 +265,7 @@ def benchmark_latency_percentiles(config: Dict[str, Any], metrics: MetricsCollec
     latencies = []
     for query in query_vectors:
         start = time.perf_counter()
-        results = db.search(query, k=k)
+        db.search(query, k=k)
         latency = (time.perf_counter() - start) * 1000  # ms
         latencies.append(latency)
 
@@ -299,7 +299,7 @@ def run(config: Dict[str, Any]) -> BenchmarkResult:
     errors = []
 
     print(f"\n{'='*60}")
-    print(f"Running Search Benchmark Suite")
+    print("Running Search Benchmark Suite")
     print(f"{'='*60}\n")
 
     # Track overall suite execution
@@ -330,7 +330,7 @@ def run(config: Dict[str, Any]) -> BenchmarkResult:
         except Exception as e:
             error_msg = f"{test_name}: {str(e)}\n{traceback.format_exc()}"
             errors.append(error_msg)
-            print(f"✗ FAILED")
+            print("✗ FAILED")
             print(f"  Error: {str(e)}")
 
     suite_duration = time.perf_counter() - suite_start

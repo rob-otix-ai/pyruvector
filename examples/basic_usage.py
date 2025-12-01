@@ -22,9 +22,9 @@ def main():
     # Insert some vectors with metadata
     print("Inserting vectors...")
     id1 = db.insert([1.0, 0.0, 0.0, 0.0], {"name": "vector_1", "type": "unit_x"})
-    id2 = db.insert([0.0, 1.0, 0.0, 0.0], {"name": "vector_2", "type": "unit_y"})
-    id3 = db.insert([0.0, 0.0, 1.0, 0.0], {"name": "vector_3", "type": "unit_z"})
-    id4 = db.insert([0.7, 0.7, 0.0, 0.0], {"name": "vector_4", "type": "mixed"})
+    db.insert([0.0, 1.0, 0.0, 0.0], {"name": "vector_2", "type": "unit_y"})
+    db.insert([0.0, 0.0, 1.0, 0.0], {"name": "vector_3", "type": "unit_z"})
+    db.insert([0.7, 0.7, 0.0, 0.0], {"name": "vector_4", "type": "mixed"})
 
     print(f"Inserted {db.count()} vectors\n")
 

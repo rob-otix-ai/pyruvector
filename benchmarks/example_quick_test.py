@@ -29,14 +29,14 @@ def simple_benchmark():
     batch_size = 100
     k = 10
 
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     print(f"  Dimensions: {dimensions}")
     print(f"  Vectors: {vector_count:,}")
     print(f"  Batch size: {batch_size}")
     print(f"  k: {k}")
 
     # Create database
-    print(f"\nCreating database...")
+    print("\nCreating database...")
     db = VectorDB(dimensions=dimensions)
 
     # Generate simple test vectors (no numpy needed)
@@ -71,7 +71,7 @@ def simple_benchmark():
     for i in range(num_queries):
         query = generate_vector(i * 10, dimensions)
         start = time.perf_counter()
-        results = db.search(query, k=k)
+        db.search(query, k=k)
         latency = (time.perf_counter() - start) * 1000  # Convert to ms
         search_times.append(latency)
 
@@ -82,7 +82,7 @@ def simple_benchmark():
     print(f"  ✓ Avg: {avg_latency:.2f}ms | Min: {min_latency:.2f}ms | Max: {max_latency:.2f}ms")
 
     # Database info
-    print(f"\nDatabase stats:")
+    print("\nDatabase stats:")
     print(f"  Total vectors: {db.len():,}")
 
     print("\n" + "=" * 80)
@@ -101,11 +101,11 @@ def simple_benchmark():
 if __name__ == "__main__":
     try:
         results = simple_benchmark()
-        print(f"\nTo run the full benchmark suite with database comparison:")
-        print(f"  1. Install dependencies: pip install numpy qdrant-client")
-        print(f"  2. Run: python3 -m benchmarks.run_benchmarks --quick")
-        print(f"\nOr for detailed comparison:")
-        print(f"  python3 -m benchmarks.run_benchmarks --db all --vectors 10000 50000")
+        print("\nTo run the full benchmark suite with database comparison:")
+        print("  1. Install dependencies: pip install numpy qdrant-client")
+        print("  2. Run: python3 -m benchmarks.run_benchmarks --quick")
+        print("\nOr for detailed comparison:")
+        print("  python3 -m benchmarks.run_benchmarks --db all --vectors 10000 50000")
     except Exception as e:
         print(f"\n✗ Error: {e}")
         import traceback

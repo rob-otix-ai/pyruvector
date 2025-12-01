@@ -5,14 +5,13 @@ use pyo3::types::{PyAny, PyDict};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use ruvector_core::{
-    VectorDB as RuvectorDB,
-    VectorEntry,
-    SearchQuery,
-};
+use ruvector_core::{SearchQuery, VectorDB as RuvectorDB, VectorEntry};
 
-use crate::types::{SearchResult, DBStats, DistanceMetric, HNSWConfig, QuantizationConfig, QuantizationType, DbOptions, HealthStatus};
-use crate::filter::{parse_filter, evaluate_filter};
+use crate::filter::{evaluate_filter, parse_filter};
+use crate::types::{
+    DBStats, DbOptions, DistanceMetric, HNSWConfig, HealthStatus, QuantizationConfig,
+    QuantizationType, SearchResult,
+};
 
 /// Main VectorDB class for storing and searching vectors
 ///
@@ -101,10 +100,9 @@ impl VectorDB {
         };
 
         // Create VectorDB with proper options for persistence
-        let inner = RuvectorDB::new(core_options)
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(
-                format!("Failed to create VectorDB: {}", e)
-            ))?;
+        let inner = RuvectorDB::new(core_options).map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to create VectorDB: {}", e))
+        })?;
 
         Ok(VectorDB {
             inner: Arc::new(RwLock::new(inner)),
@@ -150,10 +148,12 @@ impl VectorDB {
         };
 
         // Open existing database - ruvector-core automatically loads from storage_path
-        let inner = RuvectorDB::new(core_options)
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(
-                format!("Failed to load VectorDB from '{}': {}", path, e)
-            ))?;
+        let inner = RuvectorDB::new(core_options).map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Failed to load VectorDB from '{}': {}",
+                path, e
+            ))
+        })?;
 
         // Get configuration from opened database and clone needed values
         let db_options = inner.options();
@@ -222,9 +222,10 @@ impl VectorDB {
                 DistanceMetric::DotProduct => ruvector_core::types::DistanceMetric::DotProduct,
                 DistanceMetric::Manhattan => ruvector_core::types::DistanceMetric::Manhattan,
             },
-            storage_path: options.storage_path.clone().unwrap_or_else(|| {
-                format!(":memory:{}", uuid::Uuid::new_v4())
-            }),
+            storage_path: options
+                .storage_path
+                .clone()
+                .unwrap_or_else(|| format!(":memory:{}", uuid::Uuid::new_v4())),
             hnsw_config: Some(ruvector_core::types::HnswConfig {
                 m: options.hnsw_config.m,
                 ef_construction: options.hnsw_config.ef_construction,
@@ -244,10 +245,9 @@ impl VectorDB {
             },
         };
 
-        let inner = RuvectorDB::new(core_options)
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(
-                format!("Failed to create VectorDB: {}", e)
-            ))?;
+        let inner = RuvectorDB::new(core_options).map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to create VectorDB: {}", e))
+        })?;
 
         Ok(VectorDB {
             inner: Arc::new(RwLock::new(inner)),
@@ -276,13 +276,11 @@ impl VectorDB {
     ) -> PyResult<()> {
         // Validate vector dimensions
         if vector.len() != self.dimensions {
-            return Err(pyo3::exceptions::PyValueError::new_err(
-                format!(
-                    "Vector dimension mismatch: expected {}, got {}",
-                    self.dimensions,
-                    vector.len()
-                )
-            ));
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "Vector dimension mismatch: expected {}, got {}",
+                self.dimensions,
+                vector.len()
+            )));
         }
 
         // Convert metadata to serde_json::Value
@@ -300,9 +298,10 @@ impl VectorDB {
         };
 
         // Insert into ruvector-core
-        let db = self.inner.write().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .write()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         db.insert(entry).map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Insert failed: {}", e))
@@ -328,14 +327,14 @@ impl VectorDB {
         // Validate all inputs have same length
         if ids.len() != vectors.len() {
             return Err(pyo3::exceptions::PyValueError::new_err(
-                "ids and vectors must have the same length"
+                "ids and vectors must have the same length",
             ));
         }
 
         if let Some(ref metas) = metadatas {
             if metas.len() != ids.len() {
                 return Err(pyo3::exceptions::PyValueError::new_err(
-                    "metadatas must have the same length as ids and vectors"
+                    "metadatas must have the same length as ids and vectors",
                 ));
             }
         }
@@ -345,12 +344,12 @@ impl VectorDB {
         for (i, (id, vector)) in ids.into_iter().zip(vectors.into_iter()).enumerate() {
             // Validate dimensions
             if vector.len() != self.dimensions {
-                return Err(pyo3::exceptions::PyValueError::new_err(
-                    format!(
-                        "Vector {} dimension mismatch: expected {}, got {}",
-                        i, self.dimensions, vector.len()
-                    )
-                ));
+                return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                    "Vector {} dimension mismatch: expected {}, got {}",
+                    i,
+                    self.dimensions,
+                    vector.len()
+                )));
             }
 
             let meta = if let Some(ref metas) = metadatas {
@@ -371,9 +370,10 @@ impl VectorDB {
         }
 
         // Batch insert
-        let db = self.inner.write().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .write()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         db.insert_batch(entries).map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Batch insert failed: {}", e))
@@ -398,13 +398,11 @@ impl VectorDB {
     ) -> PyResult<Vec<SearchResult>> {
         // Validate vector dimensions
         if vector.len() != self.dimensions {
-            return Err(pyo3::exceptions::PyValueError::new_err(
-                format!(
-                    "Query vector dimension mismatch: expected {}, got {}",
-                    self.dimensions,
-                    vector.len()
-                )
-            ));
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "Query vector dimension mismatch: expected {}, got {}",
+                self.dimensions,
+                vector.len()
+            )));
         }
 
         // Parse filter if provided
@@ -423,9 +421,10 @@ impl VectorDB {
         };
 
         // Execute search
-        let db = self.inner.read().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         let results = db.search(query).map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Search failed: {}", e))
@@ -467,13 +466,13 @@ impl VectorDB {
     /// # Returns
     /// True if the vector was deleted, False if it didn't exist
     fn delete(&self, id: String) -> PyResult<bool> {
-        let db = self.inner.write().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .write()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
-        db.delete(&id).map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Delete failed: {}", e))
-        })
+        db.delete(&id)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Delete failed: {}", e)))
     }
 
     /// Delete multiple vectors by id
@@ -501,9 +500,10 @@ impl VectorDB {
     /// # Returns
     /// SearchResult if found, None otherwise
     fn get(&self, id: String) -> PyResult<Option<SearchResult>> {
-        let db = self.inner.read().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         match db.get(&id) {
             Ok(Some(entry)) => Ok(Some(SearchResult {
@@ -513,9 +513,10 @@ impl VectorDB {
                 vector: Some(entry.vector), // Include vector data
             })),
             Ok(None) => Ok(None),
-            Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(
-                format!("Get failed: {}", e)
-            )),
+            Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Get failed: {}",
+                e
+            ))),
         }
     }
 
@@ -549,9 +550,10 @@ impl VectorDB {
 
     /// Get database statistics
     fn stats(&self) -> PyResult<DBStats> {
-        let db = self.inner.read().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         let vector_count = db.len().map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Stats failed: {}", e))
@@ -573,9 +575,10 @@ impl VectorDB {
     /// # Returns
     /// True if the database contains no vectors
     fn is_empty(&self) -> PyResult<bool> {
-        let db = self.inner.read().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         let count = db.len().map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Length failed: {}", e))
@@ -607,9 +610,10 @@ impl VectorDB {
     /// # Returns
     /// HealthStatus object with current database health information
     fn health(&self) -> PyResult<HealthStatus> {
-        let db = self.inner.read().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         let vector_count = db.len().map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Stats failed: {}", e))
@@ -637,9 +641,10 @@ impl VectorDB {
     /// If persistence is enabled (storage_path was provided), the cleared state
     /// will be automatically persisted to disk.
     fn clear(&self) -> PyResult<usize> {
-        let mut db = self.inner.write().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let mut db = self
+            .inner
+            .write()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         let count = db.len().map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Length failed: {}", e))
@@ -654,9 +659,10 @@ impl VectorDB {
                 DistanceMetric::DotProduct => ruvector_core::types::DistanceMetric::DotProduct,
                 DistanceMetric::Manhattan => ruvector_core::types::DistanceMetric::Manhattan,
             },
-            storage_path: self.path.clone().unwrap_or_else(|| {
-                format!(":memory:{}", uuid::Uuid::new_v4())
-            }),
+            storage_path: self
+                .path
+                .clone()
+                .unwrap_or_else(|| format!(":memory:{}", uuid::Uuid::new_v4())),
             hnsw_config: Some(ruvector_core::types::HnswConfig {
                 m: self.hnsw_config.m,
                 ef_construction: self.hnsw_config.ef_construction,
@@ -676,10 +682,12 @@ impl VectorDB {
             },
         };
 
-        let new_db = RuvectorDB::new(core_options)
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(
-                format!("Failed to create new VectorDB: {}", e)
-            ))?;
+        let new_db = RuvectorDB::new(core_options).map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Failed to create new VectorDB: {}",
+                e
+            ))
+        })?;
 
         *db = new_db;
 
@@ -699,13 +707,13 @@ impl VectorDB {
 
     /// Get the number of vectors in the database
     fn __len__(&self) -> PyResult<usize> {
-        let db = self.inner.read().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
-        db.len().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Length failed: {}", e))
-        })
+        db.len()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Length failed: {}", e)))
     }
 
     /// Check if database contains a vector
@@ -736,9 +744,10 @@ impl VectorDB {
     /// print(ids)  # ['v1', 'v2']
     /// ```
     fn get_all_ids(&self) -> PyResult<Vec<String>> {
-        let db = self.inner.read().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         // Get the storage layer and call all_ids()
         // Since we can't access storage directly, we'll iterate through the database
@@ -753,7 +762,7 @@ impl VectorDB {
         Err(pyo3::exceptions::PyRuntimeError::new_err(
             "get_all_ids() is not yet supported by ruvector-core. \
              The underlying storage has all_ids() but VectorDB doesn't expose it. \
-             Consider tracking inserted IDs in your application for now."
+             Consider tracking inserted IDs in your application for now.",
         ))
     }
 }
@@ -762,20 +771,21 @@ impl VectorDB {
 impl VectorDB {
     /// Get the number of vectors in the database (Rust API)
     pub fn len(&self) -> PyResult<usize> {
-        let db = self.inner.read().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
-        db.len().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Length failed: {}", e))
-        })
+        db.len()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Length failed: {}", e)))
     }
 
     /// Get database statistics (Rust API)
     pub fn get_stats(&self) -> PyResult<DBStats> {
-        let db = self.inner.read().map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e))
-        })?;
+        let db = self
+            .inner
+            .read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Lock error: {}", e)))?;
 
         let vector_count = db.len().map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Stats failed: {}", e))
@@ -808,7 +818,10 @@ impl VectorDB {
 
     /// Get all vectors by IDs (public API for snapshot support)
     /// Users must provide the list of IDs they've inserted
-    pub fn get_vectors_by_ids(&self, ids: Vec<String>) -> PyResult<Vec<(String, Vec<f32>, HashMap<String, serde_json::Value>)>> {
+    pub fn get_vectors_by_ids(
+        &self,
+        ids: Vec<String>,
+    ) -> PyResult<Vec<(String, Vec<f32>, HashMap<String, serde_json::Value>)>> {
         let mut results = Vec::with_capacity(ids.len());
 
         for id in ids {
@@ -824,10 +837,7 @@ impl VectorDB {
 }
 
 /// Convert Python dict to JSON HashMap
-fn python_dict_to_json(
-    py: Python,
-    dict: &PyDict,
-) -> PyResult<HashMap<String, serde_json::Value>> {
+fn python_dict_to_json(py: Python, dict: &PyDict) -> PyResult<HashMap<String, serde_json::Value>> {
     let mut map = HashMap::new();
 
     for (key, value) in dict.iter() {
@@ -859,9 +869,7 @@ fn pyobject_to_json(py: Python, obj: &PyAny) -> PyResult<serde_json::Value> {
         Ok(serde_json::Value::Array(vec))
     } else if let Ok(dict) = obj.downcast::<PyDict>() {
         Ok(serde_json::Value::Object(
-            python_dict_to_json(py, dict)?
-                .into_iter()
-                .collect()
+            python_dict_to_json(py, dict)?.into_iter().collect(),
         ))
     } else {
         // Fallback: convert to string

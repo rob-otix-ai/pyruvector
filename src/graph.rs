@@ -3,28 +3,25 @@
 //! Provides graph database functionality with nodes, edges, hyperedges,
 //! Cypher queries, and ACID transactions by wrapping the ruvector-graph crate.
 
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
 // Import from ruvector-graph crate
 use ruvector_graph::{
-    GraphDB as RuvectorGraphDB,
-    Node as RuvectorNode,
-    Edge as RuvectorEdge,
-    Hyperedge as RuvectorHyperedge,
-    Transaction as RuvectorTransaction,
+    error::GraphError, Edge as RuvectorEdge, EdgeBuilder, GraphDB as RuvectorGraphDB,
+    Hyperedge as RuvectorHyperedge, HyperedgeBuilder, IsolationLevel as RuvectorIsolationLevel,
+    Node as RuvectorNode, NodeBuilder, PropertyValue, Transaction as RuvectorTransaction,
     TransactionManager,
-    IsolationLevel as RuvectorIsolationLevel,
-    NodeBuilder, EdgeBuilder, HyperedgeBuilder,
-    PropertyValue,
-    error::GraphError,
 };
 
 /// Convert Python dict to HashMap<String, PropertyValue>
-fn py_dict_to_properties(_py: Python, dict: Option<&PyDict>) -> PyResult<HashMap<String, PropertyValue>> {
+fn py_dict_to_properties(
+    _py: Python,
+    dict: Option<&PyDict>,
+) -> PyResult<HashMap<String, PropertyValue>> {
     let mut map = HashMap::new();
 
     if let Some(dict) = dict {
@@ -129,7 +126,9 @@ impl Node {
     #[getter]
     fn label(&self) -> String {
         // Return first label or empty string
-        self.inner.labels.first()
+        self.inner
+            .labels
+            .first()
             .map(|label| label.name.as_str())
             .unwrap_or("")
             .to_string()
@@ -177,8 +176,12 @@ impl Node {
 
     /// String representation
     fn __repr__(&self) -> String {
-        format!("Node(id='{}', label='{}', properties={})",
-                self.id(), self.label(), self.inner.properties.len())
+        format!(
+            "Node(id='{}', label='{}', properties={})",
+            self.id(),
+            self.label(),
+            self.inner.properties.len()
+        )
     }
 }
 
@@ -237,8 +240,13 @@ impl Edge {
 
     /// String representation
     fn __repr__(&self) -> String {
-        format!("Edge(id='{}', source='{}', target='{}', rel_type='{}')",
-                self.id(), self.source(), self.target(), self.rel_type())
+        format!(
+            "Edge(id='{}', source='{}', target='{}', rel_type='{}')",
+            self.id(),
+            self.source(),
+            self.target(),
+            self.rel_type()
+        )
     }
 }
 
@@ -360,7 +368,11 @@ impl QueryResult {
 
     /// String representation
     fn __repr__(&self) -> String {
-        format!("QueryResult(rows={}, columns={:?})", self.rows.len(), self.columns)
+        format!(
+            "QueryResult(rows={}, columns={:?})",
+            self.rows.len(),
+            self.columns
+        )
     }
 }
 
@@ -412,13 +424,20 @@ impl Transaction {
     ///
     /// Node ID string
     #[pyo3(signature = (label, properties=None))]
-    fn create_node(&mut self, py: Python, label: String, properties: Option<&PyDict>) -> PyResult<String> {
-        let _ = label;  // Intentionally unused - transaction ops not yet implemented
+    fn create_node(
+        &mut self,
+        py: Python,
+        label: String,
+        properties: Option<&PyDict>,
+    ) -> PyResult<String> {
+        let _ = label; // Intentionally unused - transaction ops not yet implemented
         let _props = py_dict_to_properties(py, properties)?;
 
         // Transactions in ruvector-graph don't have create_node method exposed
         // This would need to be implemented in the ruvector-graph crate itself
-        Err(PyRuntimeError::new_err("Transaction node creation not yet implemented in wrapper"))
+        Err(PyRuntimeError::new_err(
+            "Transaction node creation not yet implemented in wrapper",
+        ))
     }
 
     /// Create an edge within transaction
@@ -451,7 +470,9 @@ impl Transaction {
         let _edge_id = edge.id.clone();
         // Transactions in ruvector-graph don't have create_edge, we need to use the GraphDB directly
         // For now, just return an error
-        Err(PyRuntimeError::new_err("Transaction edge creation not yet implemented in wrapper"))
+        Err(PyRuntimeError::new_err(
+            "Transaction edge creation not yet implemented in wrapper",
+        ))
     }
 
     /// Commit the transaction
@@ -465,11 +486,12 @@ impl Transaction {
         }
 
         // Take ownership of inner transaction
-        let inner = self.inner.take()
+        let inner = self
+            .inner
+            .take()
             .ok_or_else(|| PyRuntimeError::new_err("Transaction already consumed"))?;
 
-        inner.commit()
-            .map_err(graph_error_to_py)?;
+        inner.commit().map_err(graph_error_to_py)?;
 
         self.committed = true;
         Ok(true)
@@ -478,15 +500,18 @@ impl Transaction {
     /// Rollback the transaction
     fn rollback(&mut self) -> PyResult<()> {
         if self.committed {
-            return Err(PyRuntimeError::new_err("Transaction already committed/rolled back"));
+            return Err(PyRuntimeError::new_err(
+                "Transaction already committed/rolled back",
+            ));
         }
 
         // Take ownership of inner transaction
-        let inner = self.inner.take()
+        let inner = self
+            .inner
+            .take()
             .ok_or_else(|| PyRuntimeError::new_err("Transaction already consumed"))?;
 
-        inner.rollback()
-            .map_err(graph_error_to_py)?;
+        inner.rollback().map_err(graph_error_to_py)?;
 
         self.committed = true;
         Ok(())
@@ -557,7 +582,11 @@ impl GraphDB {
         let inner = Arc::new(RuvectorGraphDB::new());
         let tx_manager = Arc::new(TransactionManager::new());
 
-        Ok(Self { inner, tx_manager, path })
+        Ok(Self {
+            inner,
+            tx_manager,
+            path,
+        })
     }
 
     /// Create a new node in the graph
@@ -580,7 +609,12 @@ impl GraphDB {
     /// )
     /// ```
     #[pyo3(signature = (label, properties=None))]
-    fn create_node(&self, py: Python, label: String, properties: Option<&PyDict>) -> PyResult<String> {
+    fn create_node(
+        &self,
+        py: Python,
+        label: String,
+        properties: Option<&PyDict>,
+    ) -> PyResult<String> {
         let props = py_dict_to_properties(py, properties)?;
 
         let node = NodeBuilder::new()
@@ -589,8 +623,7 @@ impl GraphDB {
             .build();
 
         let node_id = node.id.clone();
-        self.inner.create_node(node)
-            .map_err(graph_error_to_py)?;
+        self.inner.create_node(node).map_err(graph_error_to_py)?;
 
         Ok(node_id)
     }
@@ -620,8 +653,7 @@ impl GraphDB {
     ///
     /// True if node was deleted, False if not found
     fn delete_node(&self, id: String) -> PyResult<bool> {
-        self.inner.delete_node(&id)
-            .map_err(graph_error_to_py)
+        self.inner.delete_node(&id).map_err(graph_error_to_py)
     }
 
     /// Create a new edge between two nodes
@@ -663,8 +695,7 @@ impl GraphDB {
             .build();
 
         let edge_id = edge.id.clone();
-        self.inner.create_edge(edge)
-            .map_err(graph_error_to_py)?;
+        self.inner.create_edge(edge).map_err(graph_error_to_py)?;
 
         Ok(edge_id)
     }
@@ -694,8 +725,7 @@ impl GraphDB {
     ///
     /// True if edge was deleted, False if not found
     fn delete_edge(&self, id: String) -> PyResult<bool> {
-        self.inner.delete_edge(&id)
-            .map_err(graph_error_to_py)
+        self.inner.delete_edge(&id).map_err(graph_error_to_py)
     }
 
     /// Execute a Cypher query
@@ -767,7 +797,9 @@ impl GraphDB {
         properties: Option<&PyDict>,
     ) -> PyResult<String> {
         if nodes.len() < 2 {
-            return Err(PyValueError::new_err("Hyperedge must connect at least 2 nodes"));
+            return Err(PyValueError::new_err(
+                "Hyperedge must connect at least 2 nodes",
+            ));
         }
 
         let props = py_dict_to_properties(py, properties)?;
@@ -783,7 +815,8 @@ impl GraphDB {
         let hyperedge = hyperedge_builder.build();
 
         let hyperedge_id = hyperedge.id.clone();
-        self.inner.create_hyperedge(hyperedge)
+        self.inner
+            .create_hyperedge(hyperedge)
             .map_err(graph_error_to_py)?;
 
         Ok(hyperedge_id)
@@ -837,7 +870,7 @@ impl GraphDB {
             // This is a limitation of the current ruvector-graph crate
             Err(PyRuntimeError::new_err(
                 "Hyperedge deletion not yet implemented in ruvector-graph crate. \
-                 This feature is pending in the upstream library."
+                 This feature is pending in the upstream library.",
             ))
         } else {
             Ok(false)
@@ -888,7 +921,9 @@ impl GraphDB {
 
                     // Add neighbor to result
                     if let Some(neighbor_node) = self.inner.get_node(&neighbor_id) {
-                        result.push(Node { inner: neighbor_node });
+                        result.push(Node {
+                            inner: neighbor_node,
+                        });
                     }
                 }
             }
@@ -903,7 +938,9 @@ impl GraphDB {
 
                     // Add neighbor to result
                     if let Some(neighbor_node) = self.inner.get_node(&neighbor_id) {
-                        result.push(Node { inner: neighbor_node });
+                        result.push(Node {
+                            inner: neighbor_node,
+                        });
                     }
                 }
             }
@@ -1043,9 +1080,13 @@ impl GraphDB {
         if self.path.is_some() {
             // Graph persistence not yet implemented in wrapper
             // This would require serializing the GraphDB state
-            Err(PyRuntimeError::new_err("Graph save/load not yet implemented in wrapper"))
+            Err(PyRuntimeError::new_err(
+                "Graph save/load not yet implemented in wrapper",
+            ))
         } else {
-            Err(PyValueError::new_err("No path configured for persistence. Create GraphDB with path parameter."))
+            Err(PyValueError::new_err(
+                "No path configured for persistence. Create GraphDB with path parameter.",
+            ))
         }
     }
 
@@ -1069,7 +1110,9 @@ impl GraphDB {
     #[staticmethod]
     fn load(_path: String) -> PyResult<Self> {
         // Graph persistence not yet implemented in wrapper
-        Err(PyRuntimeError::new_err("Graph save/load not yet implemented in wrapper"))
+        Err(PyRuntimeError::new_err(
+            "Graph save/load not yet implemented in wrapper",
+        ))
     }
 
     /// Get database statistics

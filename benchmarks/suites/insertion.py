@@ -12,7 +12,7 @@ Tests various insertion scenarios:
 import sys
 import time
 import traceback
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 import numpy as np
 import psutil
 import os
@@ -218,7 +218,7 @@ def run(config: Dict[str, Any]) -> BenchmarkResult:
     errors = []
 
     print(f"\n{'='*60}")
-    print(f"Running Insertion Benchmark Suite")
+    print("Running Insertion Benchmark Suite")
     print(f"{'='*60}\n")
 
     # Track overall suite execution
@@ -248,7 +248,7 @@ def run(config: Dict[str, Any]) -> BenchmarkResult:
         except Exception as e:
             error_msg = f"{test_name}: {str(e)}\n{traceback.format_exc()}"
             errors.append(error_msg)
-            print(f"✗ FAILED")
+            print("✗ FAILED")
             print(f"  Error: {str(e)}")
 
     suite_duration = time.perf_counter() - suite_start

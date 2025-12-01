@@ -33,16 +33,15 @@ def example_basic_usage():
 
     # Using Timer
     with Timer() as t:
-        result = sum(range(1000000))
+        sum(range(1000000))
 
     print(f"Computation took: {t.duration_ms:.2f}ms")
 
     # Using MemoryTracker
     tracker = MemoryTracker()
-    baseline = tracker.set_baseline()
+    tracker.set_baseline()
 
     # Allocate some memory
-    big_list = [0] * 1000000
 
     delta = tracker.delta()
     print(f"Memory delta: {delta['rss_mb']:.2f}MB")

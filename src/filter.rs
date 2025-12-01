@@ -75,28 +75,26 @@ impl FilterCondition {
                 let expected = self.value.as_bool().unwrap_or(true);
                 field_value.is_some() == expected
             }
-            FilterOperator::Eq => {
-                field_value.map_or(false, |v| v == &self.value)
-            }
-            FilterOperator::Ne => {
-                field_value.map_or(true, |v| v != &self.value)
-            }
-            FilterOperator::Gt => {
-                field_value.map_or(false, |v| compare_values(v, &self.value) == Some(std::cmp::Ordering::Greater))
-            }
-            FilterOperator::Gte => {
-                field_value.map_or(false, |v| {
-                    matches!(compare_values(v, &self.value), Some(std::cmp::Ordering::Greater | std::cmp::Ordering::Equal))
-                })
-            }
-            FilterOperator::Lt => {
-                field_value.map_or(false, |v| compare_values(v, &self.value) == Some(std::cmp::Ordering::Less))
-            }
-            FilterOperator::Lte => {
-                field_value.map_or(false, |v| {
-                    matches!(compare_values(v, &self.value), Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal))
-                })
-            }
+            FilterOperator::Eq => field_value.map_or(false, |v| v == &self.value),
+            FilterOperator::Ne => field_value.map_or(true, |v| v != &self.value),
+            FilterOperator::Gt => field_value.map_or(false, |v| {
+                compare_values(v, &self.value) == Some(std::cmp::Ordering::Greater)
+            }),
+            FilterOperator::Gte => field_value.map_or(false, |v| {
+                matches!(
+                    compare_values(v, &self.value),
+                    Some(std::cmp::Ordering::Greater | std::cmp::Ordering::Equal)
+                )
+            }),
+            FilterOperator::Lt => field_value.map_or(false, |v| {
+                compare_values(v, &self.value) == Some(std::cmp::Ordering::Less)
+            }),
+            FilterOperator::Lte => field_value.map_or(false, |v| {
+                matches!(
+                    compare_values(v, &self.value),
+                    Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal)
+                )
+            }),
             FilterOperator::In => {
                 if let Some(arr) = self.value.as_array() {
                     field_value.map_or(false, |v| arr.contains(v))
@@ -172,11 +170,7 @@ pub fn parse_filter(filter_dict: HashMap<String, Value>) -> Vec<FilterCondition>
             }
         } else {
             // Simple value - implicit $eq operator
-            conditions.push(FilterCondition::new(
-                field,
-                FilterOperator::Eq,
-                value,
-            ));
+            conditions.push(FilterCondition::new(field, FilterOperator::Eq, value));
         }
     }
 
@@ -191,10 +185,7 @@ pub fn parse_filter(filter_dict: HashMap<String, Value>) -> Vec<FilterCondition>
 ///
 /// # Returns
 /// True if all conditions match, false otherwise
-pub fn evaluate_filter(
-    conditions: &[FilterCondition],
-    metadata: &HashMap<String, Value>,
-) -> bool {
+pub fn evaluate_filter(conditions: &[FilterCondition], metadata: &HashMap<String, Value>) -> bool {
     conditions.iter().all(|cond| cond.evaluate(metadata))
 }
 
@@ -291,9 +282,12 @@ mod tests {
         assert!(evaluate_filter(&filter, &metadata));
 
         let filter = parse_filter(
-            vec![("status".to_string(), json!({"$in": ["active", "completed"]}))]
-                .into_iter()
-                .collect(),
+            vec![(
+                "status".to_string(),
+                json!({"$in": ["active", "completed"]}),
+            )]
+            .into_iter()
+            .collect(),
         );
         assert!(!evaluate_filter(&filter, &metadata));
     }

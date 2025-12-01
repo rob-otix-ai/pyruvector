@@ -24,27 +24,26 @@ mod types;
 
 use advanced_filter::{FilterBuilder, FilterEvaluator, IndexType, PayloadIndexManager};
 use cluster::{
-    ClusterConfig, ClusterManager, ClusterNode, ClusterStats, NodeStatus,
-    Replica, ReplicaRole, ReplicaSet, ShardInfo, ShardStatus, SyncMode,
+    ClusterConfig, ClusterManager, ClusterNode, ClusterStats, NodeStatus, Replica, ReplicaRole,
+    ReplicaSet, ShardInfo, ShardStatus, SyncMode,
 };
 use collection::CollectionManager;
 use db::VectorDB;
 use gnn::{
-    BasicGNNLayer, cosine_similarity, info_nce_loss, GNNConfig, GNNModel, OptimizerType,
+    cosine_similarity, info_nce_loss, BasicGNNLayer, GNNConfig, GNNModel, OptimizerType,
     PyTrainConfig, ReplayBuffer, RuvectorLayerWrapper, SchedulerType, Tensor,
     TrainingMetrics as GNNTrainingMetrics,
 };
 use graph::{Edge, GraphDB, Hyperedge, IsolationLevel, Node, QueryResult, Transaction};
 use metrics::MetricsRecorder;
 use router::{
-    Candidate, NeuralRouter, RouterConfig, RoutingDecision, RoutingRequest,
-    RoutingResponse, TrainingConfig as RouterTrainingConfig,
-    TrainingDataset, TrainingMetrics as RouterTrainingMetrics,
-    VectorDatabase,
+    Candidate, NeuralRouter, RouterConfig, RoutingDecision, RoutingRequest, RoutingResponse,
+    TrainingConfig as RouterTrainingConfig, TrainingDataset,
+    TrainingMetrics as RouterTrainingMetrics, VectorDatabase,
 };
 use snapshot::{SnapshotInfo, SnapshotManager};
 use types::{
-    CollectionStats, DBStats, DbOptions, DistanceMetric, HealthStatus, HNSWConfig,
+    CollectionStats, DBStats, DbOptions, DistanceMetric, HNSWConfig, HealthStatus,
     QuantizationConfig, QuantizationType, SearchResult,
 };
 

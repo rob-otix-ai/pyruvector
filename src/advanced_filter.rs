@@ -122,9 +122,10 @@ impl PayloadIndexManager {
         let mut indices = self.indices.write().unwrap();
 
         if indices.contains_key(&field_name) {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("Index already exists for field: {}", field_name),
-            ));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Index already exists for field: {}",
+                field_name
+            )));
         }
 
         indices.insert(field_name.clone(), index_type);
@@ -149,9 +150,10 @@ impl PayloadIndexManager {
         let mut indices = self.indices.write().unwrap();
 
         if !indices.contains_key(&field_name) {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("No index exists for field: {}", field_name),
-            ));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "No index exists for field: {}",
+                field_name
+            )));
         }
 
         indices.remove(&field_name);
@@ -375,7 +377,9 @@ impl FilterBuilder {
     pub fn eq(&self, field: String, value: &PyAny) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
         let json_value = pyany_to_value(value)?;
-        builder.conditions.push(FilterCondition::Eq(field, json_value));
+        builder
+            .conditions
+            .push(FilterCondition::Eq(field, json_value));
         Ok(builder)
     }
 
@@ -383,7 +387,9 @@ impl FilterBuilder {
     pub fn ne(&self, field: String, value: &PyAny) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
         let json_value = pyany_to_value(value)?;
-        builder.conditions.push(FilterCondition::Ne(field, json_value));
+        builder
+            .conditions
+            .push(FilterCondition::Ne(field, json_value));
         Ok(builder)
     }
 
@@ -391,7 +397,9 @@ impl FilterBuilder {
     pub fn gt(&self, field: String, value: &PyAny) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
         let json_value = pyany_to_value(value)?;
-        builder.conditions.push(FilterCondition::Gt(field, json_value));
+        builder
+            .conditions
+            .push(FilterCondition::Gt(field, json_value));
         Ok(builder)
     }
 
@@ -399,7 +407,9 @@ impl FilterBuilder {
     pub fn gte(&self, field: String, value: &PyAny) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
         let json_value = pyany_to_value(value)?;
-        builder.conditions.push(FilterCondition::Gte(field, json_value));
+        builder
+            .conditions
+            .push(FilterCondition::Gte(field, json_value));
         Ok(builder)
     }
 
@@ -407,7 +417,9 @@ impl FilterBuilder {
     pub fn lt(&self, field: String, value: &PyAny) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
         let json_value = pyany_to_value(value)?;
-        builder.conditions.push(FilterCondition::Lt(field, json_value));
+        builder
+            .conditions
+            .push(FilterCondition::Lt(field, json_value));
         Ok(builder)
     }
 
@@ -415,7 +427,9 @@ impl FilterBuilder {
     pub fn lte(&self, field: String, value: &PyAny) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
         let json_value = pyany_to_value(value)?;
-        builder.conditions.push(FilterCondition::Lte(field, json_value));
+        builder
+            .conditions
+            .push(FilterCondition::Lte(field, json_value));
         Ok(builder)
     }
 
@@ -426,11 +440,11 @@ impl FilterBuilder {
     /// * `values` - List of acceptable values
     pub fn in_values(&self, field: String, values: &PyList) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
-        let json_values: PyResult<Vec<Value>> = values
-            .iter()
-            .map(|item| pyany_to_value(item))
-            .collect();
-        builder.conditions.push(FilterCondition::In(field, json_values?));
+        let json_values: PyResult<Vec<Value>> =
+            values.iter().map(|item| pyany_to_value(item)).collect();
+        builder
+            .conditions
+            .push(FilterCondition::In(field, json_values?));
         Ok(builder)
     }
 
@@ -441,7 +455,9 @@ impl FilterBuilder {
     pub fn contains(&self, field: String, value: &PyAny) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
         let json_value = pyany_to_value(value)?;
-        builder.conditions.push(FilterCondition::Contains(field, json_value));
+        builder
+            .conditions
+            .push(FilterCondition::Contains(field, json_value));
         Ok(builder)
     }
 
@@ -487,7 +503,9 @@ impl FilterBuilder {
     /// ```
     pub fn text_match(&self, field: String, query: String) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
-        builder.conditions.push(FilterCondition::TextMatch { field, query });
+        builder
+            .conditions
+            .push(FilterCondition::TextMatch { field, query });
         Ok(builder)
     }
 
@@ -505,10 +523,8 @@ impl FilterBuilder {
     /// ```
     pub fn and_(&self, filters: Vec<FilterBuilder>) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
-        let conditions: Vec<FilterCondition> = filters
-            .into_iter()
-            .flat_map(|f| f.conditions)
-            .collect();
+        let conditions: Vec<FilterCondition> =
+            filters.into_iter().flat_map(|f| f.conditions).collect();
         builder.conditions.push(FilterCondition::And(conditions));
         Ok(builder)
     }
@@ -527,10 +543,8 @@ impl FilterBuilder {
     /// ```
     pub fn or_(&self, filters: Vec<FilterBuilder>) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
-        let conditions: Vec<FilterCondition> = filters
-            .into_iter()
-            .flat_map(|f| f.conditions)
-            .collect();
+        let conditions: Vec<FilterCondition> =
+            filters.into_iter().flat_map(|f| f.conditions).collect();
         builder.conditions.push(FilterCondition::Or(conditions));
         Ok(builder)
     }
@@ -549,7 +563,9 @@ impl FilterBuilder {
     pub fn not_(&self, filter: FilterBuilder) -> PyResult<FilterBuilder> {
         let mut builder = self.clone();
         if let Some(condition) = filter.conditions.into_iter().next() {
-            builder.conditions.push(FilterCondition::Not(Box::new(condition)));
+            builder
+                .conditions
+                .push(FilterCondition::Not(Box::new(condition)));
         }
         Ok(builder)
     }
@@ -810,19 +826,17 @@ fn pyany_to_value(obj: &PyAny) -> PyResult<Value> {
     } else if let Ok(b) = obj.extract::<bool>() {
         Ok(json!(b))
     } else if let Ok(list) = obj.downcast::<PyList>() {
-        let items: PyResult<Vec<Value>> = list
-            .iter()
-            .map(|item| pyany_to_value(item))
-            .collect();
+        let items: PyResult<Vec<Value>> = list.iter().map(|item| pyany_to_value(item)).collect();
         Ok(Value::Array(items?))
     } else if let Ok(dict) = obj.downcast::<PyDict>() {
         pydict_to_value(dict)
     } else if obj.is_none() {
         Ok(Value::Null)
     } else {
-        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-            format!("Unsupported type: {:?}", obj),
-        ))
+        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+            "Unsupported type: {:?}",
+            obj
+        )))
     }
 }
 
@@ -913,7 +927,12 @@ fn condition_to_dict(py: Python, condition: &FilterCondition, dict: &PyDict) -> 
             inner.set_item("$contains", value_to_py(py, value)?)?;
             dict.set_item(field, inner)?;
         }
-        FilterCondition::GeoRadius { field, lat, lon, radius_km } => {
+        FilterCondition::GeoRadius {
+            field,
+            lat,
+            lon,
+            radius_km,
+        } => {
             let inner = PyDict::new(py);
             let geo = PyDict::new(py);
             geo.set_item("lat", lat)?;
@@ -953,4 +972,3 @@ fn condition_to_dict(py: Python, condition: &FilterCondition, dict: &PyDict) -> 
     }
     Ok(())
 }
-

@@ -62,25 +62,21 @@
 //! metrics = model.train(dataset, train_config)
 //! ```
 
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
-use pyo3::exceptions::{PyValueError, PyRuntimeError};
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use rand::distributions::{Distribution, Uniform};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 // Import from ruvector-gnn crate
-use ruvector_gnn::{
-    OptimizerType as RuvectorOptimizerType,
-    Optimizer as RuvectorOptimizer,
-    LearningRateScheduler,
-    SchedulerType as RuvectorSchedulerType,
-    cosine_similarity as ruvector_cosine_similarity,
-    info_nce_loss as ruvector_info_nce_loss,
-    sgd_step as ruvector_sgd_step,
-    RuvectorLayer as RuvectorLayerCrate,
-};
 use ndarray::Array2;
+use ruvector_gnn::{
+    cosine_similarity as ruvector_cosine_similarity, info_nce_loss as ruvector_info_nce_loss,
+    sgd_step as ruvector_sgd_step, LearningRateScheduler, Optimizer as RuvectorOptimizer,
+    OptimizerType as RuvectorOptimizerType, RuvectorLayer as RuvectorLayerCrate,
+    SchedulerType as RuvectorSchedulerType,
+};
 
 /// Optimizer type enumeration
 ///
@@ -260,16 +256,15 @@ impl GNNConfig {
         activation: String,
     ) -> PyResult<Self> {
         if dropout < 0.0 || dropout > 1.0 {
-            return Err(PyValueError::new_err(
-                "Dropout must be between 0.0 and 1.0"
-            ));
+            return Err(PyValueError::new_err("Dropout must be between 0.0 and 1.0"));
         }
 
         let valid_activations = ["relu", "tanh", "sigmoid", "leaky_relu", "gelu", "swish"];
         if !valid_activations.contains(&activation.as_str()) {
-            return Err(PyValueError::new_err(
-                format!("Invalid activation '{}'. Must be one of: {:?}", activation, valid_activations)
-            ));
+            return Err(PyValueError::new_err(format!(
+                "Invalid activation '{}'. Must be one of: {:?}",
+                activation, valid_activations
+            )));
         }
 
         Ok(GNNConfig {
@@ -434,9 +429,24 @@ impl TrainingMetrics {
         let dict = PyDict::new(py);
         dict.set_item("epochs_trained", self.epochs_trained)?;
         dict.set_item("final_loss", self.final_loss)?;
-        dict.set_item("min_loss", self.loss_history.iter().cloned().fold(f32::INFINITY, f32::min))?;
-        dict.set_item("max_accuracy", self.accuracy_history.iter().cloned().fold(f32::NEG_INFINITY, f32::max))?;
-        dict.set_item("final_accuracy", self.accuracy_history.last().unwrap_or(&0.0))?;
+        dict.set_item(
+            "min_loss",
+            self.loss_history
+                .iter()
+                .cloned()
+                .fold(f32::INFINITY, f32::min),
+        )?;
+        dict.set_item(
+            "max_accuracy",
+            self.accuracy_history
+                .iter()
+                .cloned()
+                .fold(f32::NEG_INFINITY, f32::max),
+        )?;
+        dict.set_item(
+            "final_accuracy",
+            self.accuracy_history.last().unwrap_or(&0.0),
+        )?;
         Ok(dict.into())
     }
 }
@@ -487,9 +497,7 @@ impl Tensor {
         // Validate all rows have same length
         for row in &data {
             if row.len() != cols {
-                return Err(PyValueError::new_err(
-                    "All rows must have the same length"
-                ));
+                return Err(PyValueError::new_err("All rows must have the same length"));
             }
         }
 
@@ -581,11 +589,7 @@ impl BasicGNNLayer {
         let dist = Uniform::new(-scale, scale);
 
         let weights = (0..output_dim)
-            .map(|_| {
-                (0..input_dim)
-                    .map(|_| dist.sample(&mut rng))
-                    .collect()
-            })
+            .map(|_| (0..input_dim).map(|_| dist.sample(&mut rng)).collect())
             .collect();
 
         let bias = vec![0.0; output_dim];
@@ -695,11 +699,17 @@ impl BasicGNNLayer {
             "tanh" => x.tanh(),
             "sigmoid" => 1.0 / (1.0 + (-x).exp()),
             "leaky_relu" => {
-                if x > 0.0 { x } else { 0.01 * x }
+                if x > 0.0 {
+                    x
+                } else {
+                    0.01 * x
+                }
             }
             "gelu" => {
                 // GELU approximation
-                0.5 * x * (1.0 + ((2.0 / std::f32::consts::PI).sqrt() * (x + 0.044715 * x.powi(3))).tanh())
+                0.5 * x
+                    * (1.0
+                        + ((2.0 / std::f32::consts::PI).sqrt() * (x + 0.044715 * x.powi(3))).tanh())
             }
             "swish" => x / (1.0 + (-x).exp()),
             _ => x, // identity
@@ -708,7 +718,13 @@ impl BasicGNNLayer {
 
     fn activation_derivative(&self, x: f32) -> f32 {
         match self.activation.as_str() {
-            "relu" => if x > 0.0 { 1.0 } else { 0.0 },
+            "relu" => {
+                if x > 0.0 {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
             "tanh" => {
                 let t = x.tanh();
                 1.0 - t * t
@@ -717,7 +733,13 @@ impl BasicGNNLayer {
                 let s = 1.0 / (1.0 + (-x).exp());
                 s * (1.0 - s)
             }
-            "leaky_relu" => if x > 0.0 { 1.0 } else { 0.01 },
+            "leaky_relu" => {
+                if x > 0.0 {
+                    1.0
+                } else {
+                    0.01
+                }
+            }
             "gelu" => {
                 // GELU derivative approximation
                 let cdf = 0.5 * (1.0 + ((2.0 / std::f32::consts::PI).sqrt() * x).tanh());
@@ -760,7 +782,8 @@ impl BasicGNNLayer {
 
                 // Accumulate weight gradients and compute input gradients
                 for in_idx in 0..self.input_dim {
-                    self.weight_gradients[out_idx][in_idx] += grad * self.last_aggregated[i][in_idx];
+                    self.weight_gradients[out_idx][in_idx] +=
+                        grad * self.last_aggregated[i][in_idx];
                     input_gradients[i][in_idx] += grad * self.weights[out_idx][in_idx];
                 }
             }
@@ -845,15 +868,14 @@ impl RuvectorLayerWrapper {
     #[new]
     fn new(input_dim: usize, hidden_dim: usize, heads: usize, dropout: f32) -> PyResult<Self> {
         if dropout < 0.0 || dropout > 1.0 {
-            return Err(PyValueError::new_err(
-                "Dropout must be between 0.0 and 1.0"
-            ));
+            return Err(PyValueError::new_err("Dropout must be between 0.0 and 1.0"));
         }
 
         if hidden_dim % heads != 0 {
-            return Err(PyValueError::new_err(
-                format!("hidden_dim ({}) must be divisible by heads ({})", hidden_dim, heads)
-            ));
+            return Err(PyValueError::new_err(format!(
+                "hidden_dim ({}) must be divisible by heads ({})",
+                hidden_dim, heads
+            )));
         }
 
         let inner = RuvectorLayerCrate::new(input_dim, hidden_dim, heads, dropout);
@@ -906,46 +928,38 @@ impl RuvectorLayerWrapper {
     ) -> PyResult<Vec<f32>> {
         // Validate input dimensions
         if node_embedding.len() != self.input_dim {
-            return Err(PyValueError::new_err(
-                format!(
-                    "node_embedding length ({}) must match input_dim ({})",
-                    node_embedding.len(),
-                    self.input_dim
-                )
-            ));
+            return Err(PyValueError::new_err(format!(
+                "node_embedding length ({}) must match input_dim ({})",
+                node_embedding.len(),
+                self.input_dim
+            )));
         }
 
         // Validate neighbor embeddings
         for (i, neighbor) in neighbor_embeddings.iter().enumerate() {
             if neighbor.len() != self.input_dim {
-                return Err(PyValueError::new_err(
-                    format!(
-                        "neighbor_embeddings[{}] length ({}) must match input_dim ({})",
-                        i,
-                        neighbor.len(),
-                        self.input_dim
-                    )
-                ));
+                return Err(PyValueError::new_err(format!(
+                    "neighbor_embeddings[{}] length ({}) must match input_dim ({})",
+                    i,
+                    neighbor.len(),
+                    self.input_dim
+                )));
             }
         }
 
         // Validate edge weights
         if !neighbor_embeddings.is_empty() && edge_weights.len() != neighbor_embeddings.len() {
-            return Err(PyValueError::new_err(
-                format!(
-                    "edge_weights length ({}) must match number of neighbors ({})",
-                    edge_weights.len(),
-                    neighbor_embeddings.len()
-                )
-            ));
+            return Err(PyValueError::new_err(format!(
+                "edge_weights length ({}) must match number of neighbors ({})",
+                edge_weights.len(),
+                neighbor_embeddings.len()
+            )));
         }
 
         // Call the underlying ruvector-gnn layer
-        let output = self.inner.forward(
-            &node_embedding,
-            &neighbor_embeddings,
-            &edge_weights,
-        );
+        let output = self
+            .inner
+            .forward(&node_embedding, &neighbor_embeddings, &edge_weights);
 
         Ok(output)
     }
@@ -1063,7 +1077,9 @@ impl GNNModel {
 
         // Create optimizer using ruvector-gnn
         let optimizer_type = config.optimizer.to_ruvector(config.learning_rate);
-        let mut optimizers: Vec<RuvectorOptimizer> = self.layers.iter()
+        let mut optimizers: Vec<RuvectorOptimizer> = self
+            .layers
+            .iter()
             .map(|_| RuvectorOptimizer::new(optimizer_type.clone()))
             .collect();
 
@@ -1118,17 +1134,26 @@ impl GNNModel {
                     // Convert layer weights to Array2
                     let mut params = Array2::from_shape_vec(
                         (layer.output_dim, layer.input_dim),
-                        layer.weights.iter().flatten().copied().collect()
-                    ).map_err(|e| PyRuntimeError::new_err(format!("Failed to create weight array: {}", e)))?;
+                        layer.weights.iter().flatten().copied().collect(),
+                    )
+                    .map_err(|e| {
+                        PyRuntimeError::new_err(format!("Failed to create weight array: {}", e))
+                    })?;
 
                     let grads = Array2::from_shape_vec(
                         (layer.output_dim, layer.input_dim),
-                        layer.weight_gradients.iter().flatten().copied().collect()
-                    ).map_err(|e| PyRuntimeError::new_err(format!("Failed to create gradient array: {}", e)))?;
+                        layer.weight_gradients.iter().flatten().copied().collect(),
+                    )
+                    .map_err(|e| {
+                        PyRuntimeError::new_err(format!("Failed to create gradient array: {}", e))
+                    })?;
 
                     // Use ruvector-gnn's optimizer.step()
-                    optimizers[layer_idx].step(&mut params, &grads)
-                        .map_err(|e| PyRuntimeError::new_err(format!("Optimizer step failed: {:?}", e)))?;
+                    optimizers[layer_idx]
+                        .step(&mut params, &grads)
+                        .map_err(|e| {
+                            PyRuntimeError::new_err(format!("Optimizer step failed: {:?}", e))
+                        })?;
 
                     // Update layer weights from Array2
                     for out_idx in 0..layer.output_dim {
@@ -1208,13 +1233,17 @@ impl GNNModel {
             bias: Vec<f32>,
         }
 
-        let layers_data: Vec<LayerData> = self.layers.iter().map(|layer| LayerData {
-            input_dim: layer.input_dim,
-            output_dim: layer.output_dim,
-            activation: layer.activation.clone(),
-            weights: layer.weights.clone(),
-            bias: layer.bias.clone(),
-        }).collect();
+        let layers_data: Vec<LayerData> = self
+            .layers
+            .iter()
+            .map(|layer| LayerData {
+                input_dim: layer.input_dim,
+                output_dim: layer.output_dim,
+                activation: layer.activation.clone(),
+                weights: layer.weights.clone(),
+                bias: layer.bias.clone(),
+            })
+            .collect();
 
         let model_data = ModelData {
             config: self.config.clone(),
@@ -1397,7 +1426,11 @@ impl ReplayBuffer {
     }
 
     fn __repr__(&self) -> String {
-        format!("ReplayBuffer(capacity={}, size={})", self.capacity, self.buffer.len())
+        format!(
+            "ReplayBuffer(capacity={}, size={})",
+            self.capacity,
+            self.buffer.len()
+        )
     }
 
     /// Clear all entries from the buffer
@@ -1460,7 +1493,9 @@ pub fn info_nce_loss(embeddings: Tensor, temperature: f32) -> PyResult<f32> {
 
     let batch_size = embeddings.shape.0;
     if batch_size < 2 {
-        return Err(PyValueError::new_err("Need at least 2 samples for contrastive loss"));
+        return Err(PyValueError::new_err(
+            "Need at least 2 samples for contrastive loss",
+        ));
     }
 
     let mut total_loss = 0.0;

@@ -4,7 +4,6 @@ Pytest configuration and shared fixtures for pyruvector tests.
 
 import pytest
 import numpy as np
-from pathlib import Path
 from pyruvector import VectorDB
 
 

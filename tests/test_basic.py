@@ -124,7 +124,7 @@ class TestBasicOperations:
         # Delete the vector
         result = empty_db.delete(vector_id)
 
-        assert result == True
+        assert result
         assert empty_db.stats().vector_count == 0
 
     def test_delete_nonexistent_vector(self, empty_db):
@@ -132,7 +132,7 @@ class TestBasicOperations:
         # Should handle gracefully and return False
         result = empty_db.delete("nonexistent_id")
 
-        assert result == False
+        assert not result
         assert empty_db.stats().vector_count == 0
 
     def test_search_with_zero_k(self, populated_db, dimensions):
