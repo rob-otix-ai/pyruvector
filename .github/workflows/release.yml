@@ -1,8 +1,11 @@
-name: Publish to PyPI
+name: Release to PyPI
 
 on:
   release:
     types: [published]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       test_pypi:
@@ -11,146 +14,157 @@ on:
         type: boolean
         default: false
 
-# OIDC token permissions for trusted publishing
 permissions:
-  contents: read
-  id-token: write
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  wait-for-ci:
-    name: Wait for CI to complete
+  # Build wheels for all platforms using Maturin
+  build-linux:
+    name: Build Linux (${{ matrix.target }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64, aarch64]
     steps:
-      - name: Wait for CI workflow
-        uses: lewagon/wait-on-check-action@v1.3.1
+      - uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
         with:
-          ref: ${{ github.event.release.tag_name || github.sha }}
-          check-name: 'Build wheels'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
-          allowed-conclusions: success
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+          manylinux: auto
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-linux-${{ matrix.target }}
+          path: dist/*.whl
+          retention-days: 7
+
+  build-macos:
+    name: Build macOS (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-13
+            target: x86_64
+          - os: macos-14
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.target }}
+          path: dist/*.whl
+          retention-days: 7
+
+  build-windows:
+    name: Build Windows (x86_64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: x64
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-x64
+          path: dist/*.whl
+          retention-days: 7
 
   build-sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
-    needs: wait-for-ci
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
         with:
-          fetch-depth: 0
+          command: sdist
+          args: --out dist
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
-
-      - name: Build source distribution
-        run: python -m build --sdist
-
-      - name: Verify source distribution
-        run: |
-          twine check dist/*.tar.gz
-          ls -lh dist/
-
-      - name: Upload sdist artifact
+      - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
-          name: sdist
+          name: wheels-sdist
           path: dist/*.tar.gz
-          retention-days: 5
+          retention-days: 7
 
-  download-wheels:
-    name: Download wheel artifacts
+  publish-testpypi:
+    name: Publish to TestPyPI
     runs-on: ubuntu-latest
-    needs: wait-for-ci
+    if: github.event.inputs.test_pypi == 'true'
+    needs: [build-linux, build-macos, build-windows, build-sdist]
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/pyruvector
     steps:
-      - name: Download all wheel artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: wheels-*
           path: dist
           merge-multiple: true
 
-      - name: List downloaded wheels
-        run: |
-          ls -lh dist/
-          echo "Total wheels: $(ls -1 dist/*.whl 2>/dev/null | wc -l)"
-
-      - name: Verify wheel integrity
-        run: |
-          python -m pip install --upgrade pip twine
-          twine check dist/*.whl || echo "Warning: Some wheels failed verification"
-
-      - name: Upload combined wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: all-wheels
-          path: dist/*.whl
-          retention-days: 5
-
-  publish-testpypi:
-    name: Publish to TestPyPI
-    runs-on: ubuntu-latest
-    if: github.event.inputs.test_pypi == 'true'
-    needs: [build-sdist, download-wheels]
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/p/pyruvector
-    steps:
-      - name: Download sdist
-        uses: actions/download-artifact@v4
-        with:
-          name: sdist
-          path: dist/
-
-      - name: Download wheels
-        uses: actions/download-artifact@v4
-        with:
-          name: all-wheels
-          path: dist/
-
-      - name: List all artifacts
+      - name: List artifacts to publish
         run: |
           ls -lh dist/
           echo "Files to publish:"
           echo "  Source distributions: $(ls -1 dist/*.tar.gz 2>/dev/null | wc -l)"
           echo "  Wheels: $(ls -1 dist/*.whl 2>/dev/null | wc -l)"
 
-      - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to TestPyPI with Maturin
+        uses: PyO3/maturin-action@v1
         with:
-          repository-url: https://test.pypi.org/legacy/
-          verbose: true
-          print-hash: true
+          command: upload
+          args: --non-interactive --skip-existing dist/*
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          MATURIN_REPOSITORY_URL: https://test.pypi.org/legacy/
 
   publish-pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'published'
-    needs: [build-sdist, download-wheels]
+    if: (github.event_name == 'release' && github.event.action == 'published') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+    needs: [build-linux, build-macos, build-windows, build-sdist]
     environment:
       name: pypi
       url: https://pypi.org/p/pyruvector
     steps:
-      - name: Download sdist
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: sdist
-          path: dist/
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
 
-      - name: Download wheels
-        uses: actions/download-artifact@v4
-        with:
-          name: all-wheels
-          path: dist/
-
-      - name: List all artifacts
+      - name: List artifacts to publish
         run: |
           ls -lh dist/
           echo "Files to publish:"
@@ -159,11 +173,15 @@ jobs:
 
       - name: Verify release version matches tag
         run: |
-          TAG_VERSION="${{ github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" == "release" ]; then
+            TAG_VERSION="${{ github.event.release.tag_name }}"
+          else
+            TAG_VERSION="${GITHUB_REF#refs/tags/}"
+          fi
           TAG_VERSION="${TAG_VERSION#v}"  # Remove 'v' prefix if present
 
           # Extract version from sdist filename
-          SDIST_FILE=$(ls dist/*.tar.gz)
+          SDIST_FILE=$(ls dist/*.tar.gz | head -1)
           SDIST_VERSION=$(basename "$SDIST_FILE" .tar.gz | sed 's/pyruvector-//')
 
           echo "Release tag version: $TAG_VERSION"
@@ -176,27 +194,36 @@ jobs:
 
           echo "Version verification passed ✓"
 
-      - name: Final verification before publish
-        run: |
-          python -m pip install --upgrade pip twine
-          twine check dist/*
-
-          echo "Publishing the following artifacts:"
-          ls -lh dist/
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI with Maturin
+        uses: PyO3/maturin-action@v1
         with:
-          verbose: true
-          print-hash: true
+          command: upload
+          args: --non-interactive --skip-existing dist/*
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Create GitHub Release assets
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create deployment summary
         if: success()
         run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+
           echo "## 🚀 PyPI Deployment Successful" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Package:** pyruvector" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
           echo "**PyPI URL:** https://pypi.org/project/pyruvector/" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Published Artifacts" >> $GITHUB_STEP_SUMMARY
