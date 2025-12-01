@@ -6,7 +6,6 @@ from pyruvector import (
     VectorDB,
     SnapshotManager,
     SnapshotInfo,
-    SnapshotCompression,
 )
 
 
