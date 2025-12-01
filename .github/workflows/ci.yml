@@ -461,14 +461,14 @@ jobs:
       - name: Build and install pyruvector
         run: |
           python -m pip install --upgrade pip
-          pip install maturin
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install maturin pytest pytest-benchmark
           maturin develop --release
-
-      - name: Install benchmark dependencies
-        run: pip install pytest pytest-benchmark
 
       - name: Run quick benchmarks
         run: |
+          source .venv/bin/activate
           export BENCHMARK_QUICK=1
           pytest benchmarks/ --benchmark-only -m quick \
             --benchmark-json=benchmark-results.json \
