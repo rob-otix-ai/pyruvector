@@ -104,7 +104,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: benchmark-results-${{ matrix.os }}
           path: |
@@ -114,7 +114,7 @@ jobs:
           retention-days: 90
 
       - name: Save as baseline
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: benchmark-baseline-${{ matrix.os }}
           path: .benchmarks/
@@ -181,7 +181,7 @@ jobs:
           fi
 
       - name: Upload performance report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: performance-report-${{ matrix.os }}
           path: performance-report-${{ matrix.os }}.md
@@ -241,7 +241,7 @@ jobs:
           echo "All benchmark results, histograms, and comparisons are available in the workflow artifacts." >> BENCHMARK_SUMMARY.md
 
       - name: Upload combined summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: benchmark-summary
           path: BENCHMARK_SUMMARY.md

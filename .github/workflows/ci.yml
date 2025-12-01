@@ -107,7 +107,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-linux-x86_64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -147,7 +147,7 @@ jobs:
           manylinux: auto
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-linux-aarch64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -202,7 +202,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-macos-x86_64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -257,7 +257,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-macos-arm64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -313,7 +313,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-windows-x86_64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -343,7 +343,7 @@ jobs:
           args: --out dist
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -477,7 +477,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: benchmark-results-quick
