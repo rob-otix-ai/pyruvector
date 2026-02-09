@@ -42,7 +42,7 @@ ruvector-graph = "0.1.2"
 ruvector-gnn = "0.1.15"
 
 # Distributed/cluster
-ruvector-cluster = "0.1.2"
+ruvector-cluster = "2.0.1"
 ruvector-raft = "0.1.2"
 ruvector-replication = "0.1.2"
 
