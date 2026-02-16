@@ -31,7 +31,7 @@ parking_lot = "0.12"
 # ============================================
 
 # Core vector database
-ruvector-core = "0.1.2"
+ruvector-core = "2.0.3"
 ruvector-collections = "0.1.2"
 ruvector-filter = "0.1.2"
 ruvector-metrics = "0.1.2"
