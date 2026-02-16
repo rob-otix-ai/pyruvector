@@ -39,7 +39,7 @@ ruvector-snapshot = "0.1.2"
 
 # Graph database
 ruvector-graph = "0.1.2"
-ruvector-gnn = "0.1.15"
+ruvector-gnn = "2.0.3"
 
 # Distributed/cluster
 ruvector-cluster = "0.1.2"
